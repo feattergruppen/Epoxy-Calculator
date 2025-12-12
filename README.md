@@ -1,44 +1,69 @@
-# Epoxy Calculator
+# ⚗️ Epoxy Calculator
 
-En desktop applikation til beregning af epoxy-støbninger, kostpriser og data management.
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-## Installation
+A desktop application for calculating epoxy casting costs, managing materials, and tracking project history. Built with Electron and React.
 
-Da denne applikation er leveret som kildekode, skal du først installere nødvendige værktøjer.
+## 🌟 Features
 
-1.  **Installer Node.js**: Sørg for at du har Node.js (version 18+) installeret.
-    *   Hent her: [https://nodejs.org/](https://nodejs.org/)
-2.  **Åbn en terminal** i denne mappe (`epoxy-calculator`).
-3.  **Installer afhængigheder**:
+- **🧮 Cost Calculator**: Calculate prices based on material usage, labor, mold wear, consumables, and more.
+- **📜 Project History**: Save calculations and view summarized project stats.
+- **🧪 Material Management**: Manage custom materials, densities, and categories.
+- **🎨 Color Library**: Save and organize your color pigments.
+- **⚙️ Settings**: Customize hourly rates, currency, and default costs.
+- **🔒 Local Data**: All data is stored locally on your machine for privacy and offline access.
+
+## 📥 Installation
+
+This application is provided as source code. You will need Node.js installed to run it.
+
+1.  **Install Node.js**: Ensure you have Node.js (version 18+) installed.
+    *   Download: [https://nodejs.org/](https://nodejs.org/)
+2.  **Clone/Download** this repository.
+3.  **Open a terminal** in the project directory (`epoxy-calculator`).
+4.  **Install dependencies**:
     ```bash
     npm install
     ```
 
-## Kør Applikationen
+## 🚀 Usage
 
-For at starte applikationen i udviklingstilstand (med "hot reload"):
+### 💻 Development Mode
+To start the application in development mode (with hot-reload):
 
 ```bash
 npm run dev
 ```
 
-Dette vil åbne to processer:
-1.  Vite server (React)
-2.  Electron vindue
+This will launch two processes:
+1.  Vite server (for React frontend)
+2.  Electron window
 
-## Byg til Produktion (Exe/Dmg)
-
-For at pakke programmet til en eksekverbar fil:
+### 📦 Build for Production
+To package the application as an executable (exe/dmg/etc.):
 
 ```bash
 npm run dist
 ```
 
-Filen vil kunne findes i `dist/` mappen.
+The output file will be located in the `dist/` directory.
 
-## Funktioner
+## 🛠️ Technologies
 
-*   **Beregner**: Udregn priser baseret på materialeforbrug, tid, formslid, etc.
-*   **Historik**: Gem beregninger og se summeret status på projekter.
-*   **Indstillinger**: Tilpas dine kg-priser, timeløn og gem farver i biblioteket.
-*   **Lokal Data**: Alt data gemmes lokalt på din maskine i `Documents/epoxy_data.json`.
+- **Electron**: Desktop runtime
+- **React**: UI Framework
+- **Vite**: Build tool and dev server
+- **TailwindCSS**: Styling
+- **Lucide React**: Icons
+- **✨ Vibe-code**: Coded with Vibe-code
+
+## 📄 License
+
+This project is open source.
+
+<br />
+
+> [!TIP]
+> **Too tech-savvy?**
+> Or if you don't bother with all the codeing, here's an setup.exe file: [Download Release](https://github.com/feattergruppen/Epoxy-Calculator/releases/tag/Epoxy-Calculator)
