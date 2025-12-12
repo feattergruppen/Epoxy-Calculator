@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Epoxy Ikon Preview</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f3f4f6; /* Lys grå baggrund */
+            font-family: sans-serif;
+        }
+        .container {
+            text-align: center;
+        }
+        .icon-box {
+            width: 300px;
+            height: 300px;
+            margin: 0 auto;
+            /* Transparent ternet baggrund for at vise gennemsigtighed */
+            background-image:
+              linear-gradient(45deg, #ccc 25%, transparent 25%),
+              linear-gradient(-45deg, #ccc 25%, transparent 25%),
+              linear-gradient(45deg, transparent 75%, #ccc 75%),
+              linear-gradient(-45deg, transparent 75%, #ccc 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+            border: 1px solid #ddd;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: white; /* Hvid base hvis man ikke vil have tern */
+        }
+        h2 { color: #333; margin-bottom: 10px; }
+        p { color: #666; font-size: 0.9rem; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Ikon Preview</h2>
+        <div class="icon-box">
+            <!-- Her er selve SVG koden -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="250" height="250">
+              <defs>
+                <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style="stop-color:#3B82F6;stop-opacity:1" />
+                  <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+                </linearGradient>
+                <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feGaussianBlur in="SourceAlpha" stdDeviation="10"/> 
+                  <feOffset dx="0" dy="8" result="offsetblur"/>
+                  <feComponentTransfer>
+                    <feFuncA type="linear" slope="0.4"/>
+                  </feComponentTransfer>
+                  <feMerge> 
+                    <feMergeNode/>
+                    <feMergeNode in="SourceGraphic"/> 
+                  </feMerge>
+                </filter>
+              </defs>
+              <path d="M256 20 L460 138 V374 L256 492 L52 374 V138 Z" fill="url(#grad1)" filter="url(#dropShadow)" stroke="white" stroke-width="8"/>
+              <path d="M256 130 C256 130 150 260 150 325 C150 385 195 430 256 430 C317 430 362 385 362 325 C362 260 256 130 256 130 Z" fill="white"/>
+              <path d="M225 260 Q 200 300 215 350" stroke="#E0E7FF" stroke-width="12" fill="none" stroke-linecap="round" opacity="0.6"/>
+            </svg>
+        </div>
+        <p>Højreklik på ikonet og vælg "Gem som..." hvis muligt, <br>eller tag et screenshot.</p>
+    </div>
+
+</body>
+</html>
