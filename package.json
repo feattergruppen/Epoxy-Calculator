@@ -1,7 +1,7 @@
 {
   "name": "epoxy-calculator",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.2.0",
   "main": "electron/main.js",
   "description": "Epoxy Resin Calculator",
   "author": "Epoxy Calc User",
@@ -15,6 +15,7 @@
     "dist": "npm run build && electron-builder"
   },
   "dependencies": {
+    "adm-zip": "^0.5.16",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.300.0",

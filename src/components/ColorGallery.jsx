@@ -1,8 +1,16 @@
 import React, { useState } from 'react';
-import { Palette, Image as ImageIcon, X } from 'lucide-react';
+import { Palette, Image as ImageIcon, X, ChevronDown, ChevronRight } from 'lucide-react';
 
-const ColorGallery = ({ colors, t }) => {
+const ColorGallery = ({ colors, categories, t }) => {
     const [selectedImage, setSelectedImage] = useState(null);
+    const [collapsedCategories, setCollapsedCategories] = useState({});
+
+    const toggleCategory = (category) => {
+        setCollapsedCategories(prev => ({
+            ...prev,
+            [category]: !prev[category]
+        }));
+    };
 
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-8">
@@ -16,60 +24,72 @@ const ColorGallery = ({ colors, t }) => {
             {/* GALLERY GRID */}
             {colors.length > 0 ? (
                 <div className="space-y-12">
-                    {['pulver', 'flydende', 'alcohol'].map(type => {
+                    {categories.map(type => {
                         const typeColors = colors.filter(c => c.type === type);
-                        if (typeColors.length === 0) return null;
-
+                        // Handle legacy mapping for display title if needed, otherwise use type name
                         const title = type === 'pulver' ? t('typePowder') :
                             type === 'flydende' ? t('typeLiquid') :
                                 type === 'alcohol' ? t('typeAlcohol') : type;
 
+                        // Only show category if it has colors OR if we want to show empty categories (let's only show if has colors to keep it clean)
+                        if (typeColors.length === 0) return null;
+
+                        const isCollapsed = collapsedCategories[type];
+
                         return (
                             <section key={type} className="space-y-4">
-                                <h3 className="text-xl font-semibold text-gray-700 border-b pb-2 pl-2 border-gray-200">
-                                    {title} ({typeColors.length})
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {typeColors.map(color => (
-                                        <div
-                                            key={color.id}
-                                            className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col cursor-pointer group"
-                                            onClick={() => color.image && setSelectedImage(color)}
-                                        >
-                                            {/* IMAGE AREA */}
-                                            <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden border-b border-gray-100 relative">
-                                                {color.image ? (
-                                                    <img
-                                                        src={color.image}
-                                                        alt={color.name}
-                                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                                                    />
-                                                ) : (
-                                                    <div className="text-gray-300 flex flex-col items-center gap-2">
-                                                        <ImageIcon size={48} />
-                                                    </div>
-                                                )}
-                                            </div>
-
-                                            {/* CONTENT AREA */}
-                                            <div className="p-5 flex-1 flex flex-col">
-                                                <h3 className="font-bold text-lg text-gray-900 mb-1">{color.name}</h3>
-
-                                                {color.note && (
-                                                    <div className="bg-amber-50 border border-amber-100 rounded-md p-3 mt-2 flex-1">
-                                                        <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{color.note}</p>
-                                                    </div>
-                                                )}
-
-                                                {!color.note && (
-                                                    <div className="mt-2 text-sm text-gray-400 italic">
-                                                        - {t('setColorNote')} -
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    ))}
+                                <div
+                                    className="flex items-center gap-2 cursor-pointer border-b pb-2 border-gray-200 group"
+                                    onClick={() => toggleCategory(type)}
+                                >
+                                    {isCollapsed ? <ChevronRight size={20} className="text-gray-400 group-hover:text-indigo-600" /> : <ChevronDown size={20} className="text-gray-400 group-hover:text-indigo-600" />}
+                                    <h3 className="text-xl font-semibold text-gray-700 select-none">
+                                        {title} ({typeColors.length})
+                                    </h3>
                                 </div>
+                                {!isCollapsed && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fadeIn">
+                                        {typeColors.map(color => (
+                                            <div
+                                                key={color.id}
+                                                className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col cursor-pointer group"
+                                                onClick={() => color.image && setSelectedImage(color)}
+                                            >
+                                                {/* IMAGE AREA */}
+                                                <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden border-b border-gray-100 relative">
+                                                    {color.image ? (
+                                                        <img
+                                                            src={color.image}
+                                                            alt={color.name}
+                                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                                        />
+                                                    ) : (
+                                                        <div className="text-gray-300 flex flex-col items-center gap-2">
+                                                            <ImageIcon size={48} />
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* CONTENT AREA */}
+                                                <div className="p-5 flex-1 flex flex-col">
+                                                    <h3 className="font-bold text-lg text-gray-900 mb-1">{color.name}</h3>
+
+                                                    {color.note && (
+                                                        <div className="bg-amber-50 border border-amber-100 rounded-md p-3 mt-2 flex-1">
+                                                            <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{color.note}</p>
+                                                        </div>
+                                                    )}
+
+                                                    {!color.note && (
+                                                        <div className="mt-2 text-sm text-gray-400 italic">
+                                                            - {t('setColorNote')} -
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </section>
                         );
                     })}

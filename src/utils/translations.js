@@ -80,7 +80,8 @@ export const translations = {
         pdfDesc: "Beskrivelse",
         pdfQty: "Antal/Enhed",
         pdfPrice: "Pris",
-        pdfTotal: "Total"
+        pdfTotal: "Total",
+        pdfMachineSurcharge: "Maskin-Tillæg"
     },
     en: {
         appTitle: "EpoxyCalc v1.0",
@@ -151,7 +152,8 @@ export const translations = {
         pdfDesc: "Description",
         pdfQty: "Qty/Unit",
         pdfPrice: "Price",
-        pdfTotal: "Total"
+        pdfTotal: "Total",
+        pdfMachineSurcharge: "Machine Surcharge"
     },
     sv: {
         appTitle: "EpoxyCalc v1.0",
@@ -222,7 +224,8 @@ export const translations = {
         pdfDesc: "Beskrivning",
         pdfQty: "Antal/Enhet",
         pdfPrice: "Pris",
-        pdfTotal: "Totalt"
+        pdfTotal: "Totalt",
+        pdfMachineSurcharge: "Maskin/Verktygstillägg"
     },
     no: {
         appTitle: "EpoxyCalc v1.0",
@@ -293,7 +296,8 @@ export const translations = {
         pdfDesc: "Beskrivelse",
         pdfQty: "Antall/Enhet",
         pdfPrice: "Pris",
-        pdfTotal: "Totalt"
+        pdfTotal: "Totalt",
+        pdfMachineSurcharge: "Maskintillegg"
     },
     de: {
         appTitle: "EpoxyCalc v1.0",
@@ -364,7 +368,8 @@ export const translations = {
         pdfDesc: "Beschreibung",
         pdfQty: "Menge/Einh.",
         pdfPrice: "Preis",
-        pdfTotal: "Gesamt"
+        pdfTotal: "Gesamt",
+        pdfMachineSurcharge: "Maschinenzuschlag"
     },
     pl: {
         appTitle: "EpoxyCalc v1.0",
@@ -435,7 +440,8 @@ export const translations = {
         pdfDesc: "Opis",
         pdfQty: "Il./Jend.",
         pdfPrice: "Cena",
-        pdfTotal: "Razem"
+        pdfTotal: "Razem",
+        pdfMachineSurcharge: "Dopłata maszynowa"
     },
     cs: {
         appTitle: "EpoxyCalc v1.0",
@@ -506,7 +512,8 @@ export const translations = {
         pdfDesc: "Popis",
         pdfQty: "Mn./Jedn.",
         pdfPrice: "Cena",
-        pdfTotal: "Celkem"
+        pdfTotal: "Celkem",
+        pdfMachineSurcharge: "Strojní příplatek"
     },
     hu: {
         appTitle: "EpoxyCalc v1.0",
@@ -577,7 +584,8 @@ export const translations = {
         pdfDesc: "Leírás",
         pdfQty: "Menny./Egys.",
         pdfPrice: "Ár",
-        pdfTotal: "Összesen"
+        pdfTotal: "Összesen",
+        pdfMachineSurcharge: "Gép felár"
     },
     ro: {
         appTitle: "EpoxyCalc v1.0",
@@ -648,7 +656,8 @@ export const translations = {
         pdfDesc: "Descriere",
         pdfQty: "Cant./Unit",
         pdfPrice: "Preț",
-        pdfTotal: "Total"
+        pdfTotal: "Total",
+        pdfMachineSurcharge: "Taxă Mașină"
     },
     bg: {
         appTitle: "EpoxyCalc v1.0",
@@ -719,6 +728,7 @@ export const translations = {
         pdfDesc: "Описание",
         pdfQty: "Кол./Ед.",
         pdfPrice: "Цена",
-        pdfTotal: "Общо"
+        pdfTotal: "Общо",
+        pdfMachineSurcharge: "Машинна добавка"
     }
 };

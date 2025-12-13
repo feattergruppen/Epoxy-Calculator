@@ -36,6 +36,7 @@ function App() {
     const [colors, setColors] = useState([]);
     const [materials, setMaterials] = useState([]);
     const [materialCategories, setMaterialCategories] = useState(['Træ', 'Metal', 'Inserts']); // Default categories
+    const [colorCategories, setColorCategories] = useState(['Mica Pulver', 'Flydende Farve', 'Alcohol Ink']); // Default color categories
 
     // Load data on mount
     useEffect(() => {
@@ -43,13 +44,16 @@ function App() {
             try {
                 const data = await dataHandler.loadData();
                 if (data) {
-                    // Merge loaded settings with default to ensure keys exist
+                    // Merge loaded settings with default to ensure existence of keys
                     setSettings(prev => ({ ...prev, ...(data.settings || {}) }));
                     setEntries(data.entries || []);
                     setColors(data.colors || []);
                     setMaterials(data.materials || []);
                     if (data.materialCategories && data.materialCategories.length > 0) {
                         setMaterialCategories(data.materialCategories);
+                    }
+                    if (data.colorCategories && data.colorCategories.length > 0) {
+                        setColorCategories(data.colorCategories);
                     }
                 }
             } catch (err) {
@@ -64,10 +68,10 @@ function App() {
     // Auto-save on changes
     useEffect(() => {
         if (!loading) {
-            const dataToSave = { settings, entries, colors, materials, materialCategories };
+            const dataToSave = { settings, entries, colors, materials, materialCategories, colorCategories };
             dataHandler.saveData(dataToSave);
         }
-    }, [settings, entries, colors, materials, materialCategories, loading]);
+    }, [settings, entries, colors, materials, materialCategories, colorCategories, loading]);
 
     // Translation Helper
     const t = (key) => {
@@ -84,6 +88,10 @@ function App() {
         if (confirm(t('confirmDelete'))) {
             setEntries(prev => prev.filter(e => e.id !== id));
         }
+    };
+
+    const handleUpdateEntry = (id, updatedFields) => {
+        setEntries(prev => prev.map(e => e.id === id ? { ...e, ...updatedFields } : e));
     };
 
     if (loading) {
@@ -148,10 +156,10 @@ function App() {
                     <Calculator settings={settings} onSave={handleSaveEntry} t={t} />
                 )}
                 {activeTab === 'history' && (
-                    <History entries={entries} onDelete={handleDeleteEntry} t={t} settings={settings} />
+                    <History entries={entries} onDelete={handleDeleteEntry} onUpdate={handleUpdateEntry} t={t} settings={settings} />
                 )}
                 {activeTab === 'colors' && (
-                    <ColorGallery colors={colors} t={t} />
+                    <ColorGallery colors={colors} categories={colorCategories} t={t} />
                 )}
                 {activeTab === 'materials' && (
                     <MaterialGallery materials={materials} categories={materialCategories} t={t} />
@@ -166,6 +174,8 @@ function App() {
                         setMaterials={setMaterials}
                         materialCategories={materialCategories}
                         setMaterialCategories={setMaterialCategories}
+                        colorCategories={colorCategories}
+                        setColorCategories={setColorCategories}
                         t={t}
                     />
                 )}

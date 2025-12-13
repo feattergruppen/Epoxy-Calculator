@@ -1,8 +1,19 @@
 import React from 'react';
-import { Trash2, FileText, TrendingUp, Package, DollarSign } from 'lucide-react';
+import { Trash2, FileText, TrendingUp, Package, DollarSign, Image as ImageIcon } from 'lucide-react';
 import { generateInvoice } from '../utils/pdfGenerator';
 
-const History = ({ entries, onDelete, t, settings }) => {
+const History = ({ entries, onDelete, onUpdate, t, settings }) => {
+
+    const handleImageUpload = (id, e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                onUpdate(id, { projectImage: reader.result });
+            };
+            reader.readAsDataURL(file);
+        }
+    };
 
     // Group by project name to calculate stats
     const projectStats = entries.reduce((acc, entry) => {
@@ -89,6 +100,22 @@ const History = ({ entries, onDelete, t, settings }) => {
                                             {entry.results?.sales.toFixed(2)}
                                         </td>
                                         <td className="p-4 flex items-center justify-center gap-2">
+                                            <div className="relative">
+                                                {entry.projectImage ? (
+                                                    <div className="w-10 h-10 rounded overflow-hidden border border-gray-200 group relative">
+                                                        <img src={entry.projectImage} alt="Project" className="w-full h-full object-cover" />
+                                                        <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                                                            <ImageIcon size={14} className="text-white" />
+                                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(entry.id, e)} />
+                                                        </label>
+                                                    </div>
+                                                ) : (
+                                                    <label className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer flex items-center justify-center" title="Tilføj billede">
+                                                        <ImageIcon size={18} />
+                                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(entry.id, e)} />
+                                                    </label>
+                                                )}
+                                            </div>
                                             <button
                                                 onClick={() => generateInvoice(entry, settings)}
                                                 className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
