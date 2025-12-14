@@ -62,13 +62,14 @@ The output file will be located in the `dist-electron/` directory.
 - **Lucide React**: Icons
 - **✨ Vibe-code**: Coded with Vibe-code
 
-## 🆕 Latest Updates (v1.3.1)
+## 🆕 Latest Updates (v1.3.3)
 
 - **Themes**: Major update ensuring themes apply consistently across the entire application.
 - **Color Pricing**: Added price field to colors in the library.
 - **Bug Fixes**: Minor bug fixes and UI improvements.
 - **Invorce number**: Added invoice number to invoices.
 - **Invorce merger**: Added invoice merger to invoices.
+- **translation**: fixed translation issues.
 
 
 ## 📄 License
