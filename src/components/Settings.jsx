@@ -95,7 +95,8 @@ const Settings = ({
     };
 
     const deleteColorCategory = (cat) => {
-        if (confirm(`Slet kategori "${cat}"?`)) {
+        const msg = (t('confirmDeleteCat') || "Delete category \"{0}\"?").replace('{0}', cat);
+        if (confirm(msg)) {
             setColorCategories(prev => prev.filter(c => c !== cat));
         }
     };
@@ -108,7 +109,8 @@ const Settings = ({
     };
 
     const deleteCategory = (cat) => {
-        if (confirm(`Slet kategori "${cat}"? Alle materialer i denne kategori beholdes men mister deres kategori.`)) {
+        const msg = (t('confirmDeleteMatCat') || "Delete category \"{0}\"?").replace('{0}', cat);
+        if (confirm(msg)) {
             setMaterialCategories(prev => prev.filter(c => c !== cat));
         }
     };
