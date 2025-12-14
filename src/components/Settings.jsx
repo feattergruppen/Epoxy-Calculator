@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Image as ImageIcon, Layers, X, Pencil, Check, ChevronDown, ChevronRight, Download, Upload, Database, Folder } from 'lucide-react';
+import { Plus, Trash2, Image as ImageIcon, Layers, X, Pencil, Check, ChevronDown, ChevronRight, Download, Upload, Database, Folder, FileText } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 const Settings = ({
@@ -36,7 +36,7 @@ const Settings = ({
     const handleChange = (e) => {
         const { name, value } = e.target;
         // Special handling for string fields
-        const isString = name === 'language' || name === 'currency' || name === 'companyName';
+        const isString = name === 'language' || name === 'currency' || name === 'companyName' || name === 'theme';
         const val = isString ? value : (parseFloat(value) || 0);
 
         setSettings(prev => ({
@@ -189,94 +189,103 @@ const Settings = ({
         <div className="p-6 max-w-4xl mx-auto space-y-8">
 
             {/* DATA MANAGEMENT */}
-            <section className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border">
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <Database className="text-indigo-600" /> Data Management
+                    <Database className="text-indigo-600" /> {t('dataManagement')}
                 </h2>
                 <div className="flex flex-col sm:flex-row gap-4">
                     <button
                         onClick={async () => {
-                            if (!window.electronAPI) return alert('Only available in app!');
-                            const res = await window.electronAPI.exportBackup();
+                            if (!window.electronAPI) return alert(t('msgOnlyApp'));
+                            const res = await window.electronAPI.exportBackup({
+                                title: t('btnExportDB')
+                            });
                             if (res.success) {
-                                alert(`Backup saved successfully!\nFile: ${res.filePath}`);
+                                alert(`${t('msgBackupSaved')} ${res.filePath}`);
                             } else if (res.error) {
-                                alert('Export error: ' + res.error);
+                                alert(`${t('msgExportError')} ${res.error}`);
                             }
                         }}
                         className="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded flex items-center justify-center gap-2 font-medium"
                     >
                         <Download size={20} />
-                        Export Database (Zip)
+                        {t('btnExportDB')}
                     </button>
                     <button
                         onClick={async () => {
-                            if (!window.electronAPI) return alert('Only available in app!');
-                            if (!confirm('Are you sure? This will overwrite your current data with the backup file!')) return;
+                            if (!window.electronAPI) return alert(t('msgOnlyApp'));
+                            if (!confirm(t('msgConfirmImport'))) return;
 
-                            const res = await window.electronAPI.importBackup();
+                            const res = await window.electronAPI.importBackup({
+                                title: t('btnImportDB')
+                            });
                             if (res.success) {
-                                alert('Backup loaded successfully! App will reload now...');
+                                alert(t('msgImportSuccess'));
                                 window.location.reload();
                             } else if (res.error) {
-                                alert('Import error: ' + res.error);
+                                alert(`${t('msgImportError')} ${res.error}`);
                             }
                         }}
                         className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded flex items-center justify-center gap-2 font-medium"
                     >
                         <Upload size={20} />
-                        Import Database (Zip)
+                        {t('btnImportDB')}
                     </button>
                 </div>
 
-                {/* Data Location UI */}
-                <div className="mt-6 pt-4 border-t border-gray-100">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Database Location (Shared Folder)</label>
+                <div className="mt-6 pt-4 border-t border-skin-border">
+                    <label className="block text-sm font-medium text-skin-muted mb-2">{t('lblDbLoc')}</label>
                     <div className="flex flex-col md:flex-row gap-3 items-center">
-                        <div className="flex-1 bg-gray-50 border border-gray-200 rounded p-2 text-sm text-gray-600 font-mono w-full truncate">
+                        <div className="flex-1 bg-skin-base border border-skin-border rounded p-2 text-sm text-skin-muted font-mono w-full truncate">
                             {currentDataPath || 'Loading...'}
                         </div>
                         <button
                             onClick={async () => {
-                                if (!window.electronAPI) return alert('Only available in app!');
-                                const res = await window.electronAPI.changeDataPath();
+                                if (!window.electronAPI) return alert(t('msgOnlyApp'));
+                                const res = await window.electronAPI.changeDataPath({
+                                    title: t('dialogSelectFolder'),
+                                    dialogNewLoc: t('dialogNewLoc'),
+                                    dialogNoDbFound: t('dialogNoDbFound'),
+                                    dialogCopyAsk: t('dialogCopyAsk'),
+                                    buttons: [t('btnCopyData'), t('btnStartFresh'), t('btnCancel')]
+                                });
                                 if (res.success) {
-                                    alert('Folder changed! App will restart/reload to use the new database.');
+                                    alert(t('msgLocChanged'));
                                     window.location.reload();
                                 } else if (res.error) {
-                                    alert('Error: ' + res.error);
+                                    alert(`${t('msgLocError')} ${res.error}`);
                                 }
                             }}
                             className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded flex items-center gap-2 text-sm whitespace-nowrap"
                         >
-                            <Folder size={16} /> Change Location
+                            <Folder size={16} /> {t('btnChangeLoc')}
                         </button>
                     </div>
-                    <p className="text-xs text-gray-400 mt-2">
-                        Tip: Choose a folder on OneDrive, Dropbox or a Network Drive to share data between computers.
+                    <p className="text-xs text-skin-muted mt-2">
+                        {t('tipShared')}
                     </p>
                 </div>
             </section>
 
             {/* COMPANY PROFILE */}
-            <section className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border">
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                     {t('setProfileTitle')}
                 </h2>
                 <div className="flex flex-col md:flex-row gap-6">
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700">{t('setCompanyName')}</label>
+                        <label className="block text-sm font-medium text-skin-muted">{t('setCompanyName')}</label>
                         <input
                             type="text"
                             name="companyName"
                             value={settings.companyName || ''}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                            className="mt-1 block w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2 border bg-skin-input text-skin-base-text"
                             placeholder="F.eks. Skov Design ApS"
                         />
                     </div>
                     <div className="flex-1">
-                        <label className="block text-sm font-medium text-gray-700">{t('setCompanyLogo')}</label>
+                        <label className="block text-sm font-medium text-skin-muted">{t('setCompanyLogo')}</label>
                         <div className="flex items-center gap-4 mt-1">
                             {settings.companyLogo ? (
                                 <div className="relative group w-20 h-20 border rounded overflow-hidden">
@@ -289,11 +298,11 @@ const Settings = ({
                                     </button>
                                 </div>
                             ) : (
-                                <div className="w-20 h-20 border-2 border-dashed border-gray-300 rounded flex items-center justify-center text-gray-400">
+                                <div className="w-20 h-20 border-2 border-dashed border-skin-border rounded flex items-center justify-center text-skin-muted">
                                     <ImageIcon />
                                 </div>
                             )}
-                            <label className="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 py-2 px-3 rounded flex items-center gap-2 text-sm text-gray-700 h-10 self-center">
+                            <label className="cursor-pointer bg-skin-card border border-skin-border hover:bg-skin-base py-2 px-3 rounded flex items-center gap-2 text-sm text-skin-base-text h-10 self-center">
                                 {t('btnUpload')}
                                 <input
                                     type="file"
@@ -316,22 +325,50 @@ const Settings = ({
                 </div>
             </section>
 
-            {/* GLOBAL SETTINGS */}
-            <section className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            {/* Invoice Settings */}
+            <section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border">
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    {t('setGlobalTitle')}
+                    <FileText className="text-primary" /> {t('setInvoiceTitle')}
                 </h2>
+                <div className="flex flex-col md:flex-row gap-6">
+                    <div className="flex-1">
+                        <label className="block text-sm font-medium text-skin-muted">{t('lblInvoiceYear')}</label>
+                        <input
+                            type="text"
+                            value={settings.invoiceYear || new Date().getFullYear()}
+                            disabled
+                            className="mt-1 block w-full rounded-md border-skin-border shadow-sm p-2 border bg-skin-input text-skin-muted cursor-not-allowed"
+                        />
+                    </div>
+                    <div className="flex-1">
+                        <label className="block text-sm font-medium text-skin-muted">{t('lblInvoiceSeq')}</label>
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className="text-skin-muted font-mono">{settings.invoiceYear}-</span>
+                            <input
+                                type="number"
+                                name="invoiceSeq"
+                                value={settings.invoiceSeq || 1}
+                                onChange={handleChange}
+                                min="1"
+                                className="block w-full flex-1 rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2 border bg-skin-input text-skin-base-text font-mono"
+                            />
+                        </div>
+                        <p className="text-xs text-skin-muted mt-1">{t('tipInvoiceSeq')}</p>
+                    </div>
+                </div>
+            </section>
 
+            {/* General Settings */}
+            <section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border">
+                <h2 className="text-xl font-bold mb-4">{t('setGlobalTitle')}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-                    {/* Sprog */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t('langLabel')}</label>
+                        <label className="block text-sm font-medium text-skin-muted">{t('langLabel')}</label>
                         <select
                             name="language"
-                            value={settings.language || 'da'}
+                            value={settings.language}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2 border"
+                            className="mt-1 block w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2 border bg-skin-input text-skin-base-text"
                         >
                             <option value="da">Dansk</option>
                             <option value="en">English</option>
@@ -345,111 +382,121 @@ const Settings = ({
                             <option value="bg">Български</option>
                         </select>
                     </div>
-
-                    {/* Valuta */}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t('currLabel')}</label>
+                        <label className="block text-sm font-medium text-skin-muted">{t('currLabel')}</label>
                         <select
                             name="currency"
-                            value={settings.currency || 'kr'}
+                            value={settings.currency}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm sm:text-sm p-2 border"
+                            className="mt-1 block w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2 border bg-skin-input text-skin-base-text"
                         >
-                            <option value="kr">DKK (kr)</option>
+                            <option value="kr">DKK / NOK / SEK (kr)</option>
+                            <option value="€">Euro (€)</option>
                             <option value="$">USD ($)</option>
-                            <option value="€">EUR (€)</option>
                             <option value="£">GBP (£)</option>
-                            <option value="SEK">SEK</option>
-                            <option value="NOK">NOK</option>
                             <option value="zł">PLN (zł)</option>
-                            <option value="CHF">CHF</option>
                             <option value="Kč">CZK (Kč)</option>
                             <option value="Ft">HUF (Ft)</option>
                             <option value="lei">RON (lei)</option>
                             <option value="лв">BGN (лв)</option>
                         </select>
                     </div>
-
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t('setPrice1')} ({currency}/kg)</label>
+                        <label className="block text-sm font-medium text-skin-muted">{t('setTheme')}</label>
+                        <select
+                            name="theme"
+                            value={settings.theme || 'light'}
+                            onChange={handleChange}
+                            className="mt-1 block w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2 border bg-skin-input text-skin-base-text"
+                        >
+                            <option value="light">Lys / Light</option>
+                            <option value="dark">Mørk / Dark</option>
+                            <option value="ocean">Ocean</option>
+                            <option value="sunset">Solnedgang / Sunset</option>
+                        </select>
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    <div>
+                        <label className="block text-sm font-medium text-skin-muted">{t('setPrice1')} ({currency}/kg)</label>
                         <input
                             type="number"
                             name="price1to1"
                             value={settings.price1to1}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                            className="mt-1 block w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2 border bg-skin-input text-skin-base-text"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t('setPrice2')} ({currency}/kg)</label>
+                        <label className="block text-sm font-medium text-skin-muted">{t('setPrice2')} ({currency}/kg)</label>
                         <input
                             type="number"
                             name="price2to1"
                             value={settings.price2to1}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                            className="mt-1 block w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2 border bg-skin-input text-skin-base-text"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t('setHourly')} ({currency}/t)</label>
+                        <label className="block text-sm font-medium text-skin-muted">{t('setHourly')} ({currency}/t)</label>
                         <input
                             type="number"
                             name="hourlyRate"
                             value={settings.hourlyRate}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                            className="mt-1 block w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2 border bg-skin-input text-skin-base-text"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t('setBuffer')}</label>
+                        <label className="block text-sm font-medium text-skin-muted">{t('setBuffer')}</label>
                         <input
                             type="number"
                             name="buffer"
                             value={settings.buffer}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                            className="mt-1 block w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2 border bg-skin-input text-skin-base-text"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t('setMold')} ({currency})</label>
+                        <label className="block text-sm font-medium text-skin-muted">{t('setMold')} ({currency})</label>
                         <input
                             type="number"
                             name="moldWear"
                             value={settings.moldWear}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                            className="mt-1 block w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2 border bg-skin-input text-skin-base-text"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t('setVacuum')} ({currency})</label>
+                        <label className="block text-sm font-medium text-skin-muted">{t('setVacuum')} ({currency})</label>
                         <input
                             type="number"
                             name="vacuumCost"
                             value={settings.vacuumCost}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                            className="mt-1 block w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2 border bg-skin-input text-skin-base-text"
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">{t('setConsumables')} ({currency})</label>
+                        <label className="block text-sm font-medium text-skin-muted">{t('setConsumables')} ({currency})</label>
                         <input
                             type="number"
                             name="consumables"
                             value={settings.consumables}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm p-2 border"
+                            className="mt-1 block w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2 border bg-skin-input text-skin-base-text"
                         />
                     </div>
                 </div>
             </section>
 
             {/* COLOR LIBRARY */}
-            <section className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border">
                 <h2 className="text-xl font-bold mb-4">{t('setColorTitle')}</h2>
 
                 {/* Color Categories Management */}
-                <div className="mb-8 bg-indigo-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-sm text-indigo-900 mb-2">Farve Kategorier</h3>
+                <div className="mb-8 bg-skin-accent p-4 rounded-lg">
+                    <h3 className="font-semibold text-sm text-primary mb-2">{t('setColorCatTitle')}</h3>
                     <form
                         className="flex gap-2 mb-3"
                         onSubmit={(e) => { e.preventDefault(); addColorCategory(); }}
@@ -457,74 +504,84 @@ const Settings = ({
                         <input
                             type="text"
                             name="newColorCategory"
-                            className="flex-1 rounded border-indigo-200 border p-2 text-sm"
-                            placeholder="Ny kategori..."
+                            className="flex-1 rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
+                            placeholder={t('phNewCat')}
                             value={newColorCategory}
                             onChange={(e) => setNewColorCategory(e.target.value)}
                             autoComplete="off"
                         />
-                        <button type="submit" className="bg-indigo-600 text-white px-4 rounded hover:bg-indigo-700">
+                        <button type="submit" className="bg-primary text-white px-4 rounded hover:bg-primary-hover">
                             <Plus size={16} />
                         </button>
                     </form>
                     <div className="flex flex-wrap gap-2">
                         {colorCategories.map(cat => (
-                            <span key={cat} className="bg-white text-indigo-800 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-indigo-100 flex items-center gap-2">
+                            <span key={cat} className="bg-skin-card text-primary px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-skin-accent flex items-center gap-2">
                                 {cat}
-                                <button type="button" onClick={() => deleteColorCategory(cat)} className="text-indigo-400 hover:text-red-500"><X size={12} /></button>
+                                <button type="button" onClick={() => deleteColorCategory(cat)} className="text-primary/50 hover:text-danger"><X size={12} /></button>
                             </span>
                         ))}
                     </div>
                 </div>
 
-                <div id="color-form" className={`flex flex-col gap-4 mb-6 p-4 rounded-lg transition-colors ${editingColorId ? 'bg-indigo-50 border border-indigo-200' : 'bg-gray-50'}`}>
+                <div id="color-form" className={`flex flex-col gap-4 mb-6 p-4 rounded-lg transition-colors ${editingColorId ? 'bg-skin-accent border border-skin-border' : 'bg-skin-base'}`}>
                     {editingColorId && (
                         <div className="flex justify-between items-center mb-2">
-                            <h3 className="font-bold text-indigo-700 flex items-center gap-2">
+                            <h3 className="font-bold text-primary flex items-center gap-2">
                                 <Pencil size={16} /> Rediger farve
                             </h3>
-                            <button onClick={cancelEditColor} className="text-sm text-gray-500 hover:text-gray-700">Annuller</button>
+                            <button onClick={cancelEditColor} className="text-sm text-skin-muted hover:text-skin-base-text">Annuller</button>
                         </div>
                     )}
                     <div className="flex gap-4 items-end flex-col md:flex-row">
                         <div className="flex-1 w-full">
-                            <label className="block text-xs font-medium text-gray-500 mb-1">{t('setColorName')}</label>
+                            <label className="block text-xs font-medium text-skin-muted mb-1">{t('setColorName')}</label>
                             <input
                                 type="text"
                                 value={newColor.name}
                                 onChange={(e) => setNewColor({ ...newColor, name: e.target.value })}
-                                className="w-full rounded border-gray-300 border p-2 text-sm"
+                                className="w-full rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
                                 placeholder="F.eks. Deep Blue"
                             />
                         </div>
                         <div className="w-full md:w-40">
-                            <label className="block text-xs font-medium text-gray-500 mb-1">{t('setColorType')}</label>
+                            <label className="block text-xs font-medium text-skin-muted mb-1">{t('setColorType')}</label>
                             <select
                                 value={newColor.type}
                                 onChange={(e) => setNewColor({ ...newColor, type: e.target.value })}
-                                className="w-full rounded border-gray-300 border p-2 text-sm"
+                                className="w-full rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
                             >
-                                <option value="" disabled>Vælg...</option>
+                                <option value="" disabled>{t('lblSelect')}</option>
                                 {colorCategories.map(cat => (
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
                             </select>
                         </div>
+                        <div className="w-24">
+                            <label className="block text-xs font-medium text-skin-muted mb-1">{t('matCost')}</label>
+                            <input
+                                type="number"
+                                value={newColor.cost || ''}
+                                onChange={(e) => setNewColor({ ...newColor, cost: e.target.value })}
+                                className="w-full rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
+                                placeholder="0.00"
+                            />
+                        </div>
                     </div>
 
                     <div className="w-full">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('setColorNote')}</label>
+                        <label className="block text-xs font-medium text-skin-muted mb-1">{t('setColorNote')}</label>
                         <textarea
                             value={newColor.note}
                             onChange={(e) => setNewColor({ ...newColor, note: e.target.value })}
-                            className="w-full rounded border-gray-300 border p-2 text-sm"
+                            className="w-full rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
                             placeholder="..."
                             rows="2"
                         />
                     </div>
 
                     <div className="flex justify-between items-center">
-                        <label className="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 py-2 px-3 rounded flex items-center gap-2 text-sm text-gray-700">
+                        <label className="cursor-pointer bg-skin-card border border-skin-border hover:bg-skin-base py-2 px-3 rounded flex items-center gap-2 text-sm text-skin-base-text">
                             <ImageIcon size={16} />
                             {newColor.image ? t('btnChange') : t('btnUpload')}
                             <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
@@ -532,7 +589,7 @@ const Settings = ({
 
                         <button
                             onClick={handleSaveColor}
-                            className={`${editingColorId ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-indigo-600 hover:bg-indigo-700'} text-white px-4 py-2 rounded flex items-center gap-2 text-sm font-medium`}
+                            className={`bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded flex items-center gap-2 text-sm font-medium`}
                         >
                             {editingColorId ? <Check size={16} /> : <Plus size={16} />}
                             {editingColorId ? 'Gem ændringer' : t('btnAdd')}
@@ -549,49 +606,52 @@ const Settings = ({
                         return (
                             <div key={cat} className="space-y-2">
                                 <div
-                                    className="flex items-center gap-2 cursor-pointer border-b pb-1 border-gray-200 group"
+                                    className="flex items-center gap-2 cursor-pointer border-b pb-1 border-skin-border group"
                                     onClick={() => toggleSection(`color-${cat}`)}
                                 >
-                                    {isCollapsed ? <ChevronRight size={16} className="text-gray-400 group-hover:text-indigo-600" /> : <ChevronDown size={16} className="text-gray-400 group-hover:text-indigo-600" />}
-                                    <h4 className="font-semibold text-gray-700 select-none text-sm">
+                                    {isCollapsed ? <ChevronRight size={16} className="text-skin-muted group-hover:text-primary" /> : <ChevronDown size={16} className="text-skin-muted group-hover:text-primary" />}
+                                    <h4 className="font-semibold text-skin-base-text select-none text-sm">
                                         {cat} ({catColors.length})
                                     </h4>
                                 </div>
                                 {!isCollapsed && (
                                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 animate-fadeIn">
                                         {catColors.map(color => (
-                                            <div key={color.id} className="relative group bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                                            <div key={color.id} className="relative group bg-skin-card border border-skin-border rounded-lg overflow-hidden hover:shadow-md transition-shadow">
                                                 <div className="absolute top-1 right-1 flex gap-1  z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <button
                                                         onClick={() => startEditColor(color)}
-                                                        className="bg-white/90 hover:bg-white text-indigo-600 p-1 rounded shadow-sm"
+                                                        className="bg-white/90 hover:bg-white text-primary p-1 rounded shadow-sm"
                                                         title="Rediger"
                                                     >
                                                         <Pencil size={12} />
                                                     </button>
                                                     <button
                                                         onClick={() => deleteColor(color.id)}
-                                                        className="bg-red-500 hover:bg-red-600 text-white p-1 rounded shadow-sm"
+                                                        className="bg-danger hover:bg-red-600 text-white p-1 rounded shadow-sm"
                                                         title="Slet"
                                                     >
                                                         <Trash2 size={12} />
                                                     </button>
                                                 </div>
-                                                <div className="h-24 bg-gray-100 flex items-center justify-center overflow-hidden">
+                                                <div className="h-24 bg-skin-base flex items-center justify-center overflow-hidden">
                                                     {color.image ? (
                                                         <img src={color.image} alt={color.name} className="w-full h-full object-cover" />
                                                     ) : (
-                                                        <div className="text-gray-300"><ImageIcon size={32} /></div>
+                                                        <div className="text-skin-border"><ImageIcon size={32} /></div>
                                                     )}
                                                 </div>
                                                 <div className="p-2">
-                                                    <p className="font-medium text-sm truncate" title={color.name}>{color.name}</p>
-                                                    <p className="text-xs text-gray-500 capitalize">
-                                                        {color.type === 'pulver' ? t('typePowder') :
-                                                            color.type === 'flydende' ? t('typeLiquid') :
-                                                                color.type === 'alcohol' ? t('typeAlcohol') : color.type}
-                                                    </p>
-                                                    {color.note && <p className="text-xs text-gray-400 mt-1 truncate" title={color.note}>📝 {color.note}</p>}
+                                                    <p className="font-medium text-sm truncate text-skin-base-text" title={color.name}>{color.name}</p>
+                                                    <div className="flex justify-between items-center text-xs text-skin-muted">
+                                                        <span className="capitalize">
+                                                            {color.type === 'pulver' ? t('typePowder') :
+                                                                color.type === 'flydende' ? t('typeLiquid') :
+                                                                    color.type === 'alcohol' ? t('typeAlcohol') : color.type}
+                                                        </span>
+                                                        {color.cost && <span className="font-mono text-primary bg-skin-accent px-1 rounded">{color.cost} {settings.currency}</span>}
+                                                    </div>
+                                                    {color.note && <p className="text-xs text-skin-muted mt-1 truncate" title={color.note}>📝 {color.note}</p>}
                                                 </div>
                                             </div>
                                         ))}
@@ -603,21 +663,21 @@ const Settings = ({
                     {/* Uncategorized Colors */}
                     {colors.filter(c => !colorCategories.includes(c.type)).length > 0 && (
                         <div className="space-y-2 mt-4">
-                            <h4 className="font-semibold text-gray-700 select-none text-sm border-b pb-1 border-gray-200">{t('otherCategory') || 'Andet'}</h4>
+                            <h4 className="font-semibold text-skin-muted select-none text-sm border-b pb-1 border-skin-border">{t('otherCategory') || 'Andet'}</h4>
                             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                                 {colors.filter(c => !colorCategories.includes(c.type)).map(color => (
-                                    <div key={color.id} className="relative group bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                                    <div key={color.id} className="relative group bg-skin-card border border-skin-border rounded-lg overflow-hidden hover:shadow-md transition-shadow">
                                         {/* Same actions for uncategorized */}
                                         <div className="absolute top-1 right-1 flex gap-1  z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button onClick={() => startEditColor(color)} className="bg-white/90 hover:bg-white text-indigo-600 p-1 rounded shadow-sm"><Pencil size={12} /></button>
                                             <button onClick={() => deleteColor(color.id)} className="bg-red-500 hover:bg-red-600 text-white p-1 rounded shadow-sm"><Trash2 size={12} /></button>
                                         </div>
-                                        <div className="h-24 bg-gray-100 flex items-center justify-center overflow-hidden">
-                                            {color.image ? <img src={color.image} alt={color.name} className="w-full h-full object-cover" /> : <div className="text-gray-300"><ImageIcon size={32} /></div>}
+                                        <div className="h-24 bg-skin-base flex items-center justify-center overflow-hidden">
+                                            {color.image ? <img src={color.image} alt={color.name} className="w-full h-full object-cover" /> : <div className="text-skin-muted"><ImageIcon size={32} /></div>}
                                         </div>
                                         <div className="p-2">
-                                            <p className="font-medium text-sm truncate">{color.name}</p>
-                                            <p className="text-xs text-red-500">{color.type}</p>
+                                            <p className="font-medium text-sm truncate text-skin-base-text">{color.name}</p>
+                                            <p className="text-xs text-danger">{color.type}</p>
                                         </div>
                                     </div>
                                 ))}
@@ -628,84 +688,84 @@ const Settings = ({
             </section>
 
             {/* MATERIAL LIBRARY */}
-            <section className="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border">
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                    <Layers className="text-indigo-600" /> {t('setMatTitle')}
+                    <Layers className="text-primary" /> {t('setMatTitle')}
                 </h2>
 
                 {/* Categories Management */}
-                <div className="mb-8 bg-indigo-50 p-4 rounded-lg">
-                    <h3 className="font-semibold text-sm text-indigo-900 mb-2">{t('setMatCatTitle')}</h3>
+                <div className="mb-8 bg-skin-accent p-4 rounded-lg">
+                    <h3 className="font-semibold text-sm text-primary mb-2">{t('setMatCatTitle')}</h3>
                     <form
                         className="flex gap-2 mb-3"
                         onSubmit={(e) => { e.preventDefault(); addCategory(); }}
                     >
                         <input
                             type="text"
-                            className="flex-1 rounded border-indigo-200 border p-2 text-sm"
+                            className="flex-1 rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
                             placeholder={t('catName')}
                             value={newCategory}
                             onChange={(e) => setNewCategory(e.target.value)}
                             autoComplete="off"
                         />
-                        <button type="submit" className="bg-indigo-600 text-white px-4 rounded hover:bg-indigo-700">
+                        <button type="submit" className="bg-primary text-white px-4 rounded hover:bg-primary-hover">
                             <Plus size={16} />
                         </button>
                     </form>
                     <div className="flex flex-wrap gap-2">
                         {materialCategories.map(cat => (
-                            <span key={cat} className="bg-white text-indigo-800 px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-indigo-100 flex items-center gap-2">
+                            <span key={cat} className="bg-skin-card text-primary px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-skin-accent flex items-center gap-2">
                                 {cat}
-                                <button type="button" onClick={() => deleteCategory(cat)} className="text-indigo-400 hover:text-red-500"><X size={12} /></button>
+                                <button type="button" onClick={() => deleteCategory(cat)} className="text-primary/50 hover:text-danger"><X size={12} /></button>
                             </span>
                         ))}
                     </div>
                 </div>
 
                 {/* Add Material Form */}
-                <div id="material-form" className={`flex flex-col gap-4 mb-6 p-4 rounded-lg transition-colors ${editingMaterialId ? 'bg-indigo-50 border border-indigo-200' : 'bg-gray-50'}`}>
+                <div id="material-form" className={`flex flex-col gap-4 mb-6 p-4 rounded-lg transition-colors ${editingMaterialId ? 'bg-skin-accent border border-skin-border' : 'bg-skin-base'}`}>
                     {editingMaterialId && (
                         <div className="flex justify-between items-center mb-2">
-                            <h3 className="font-bold text-indigo-700 flex items-center gap-2">
+                            <h3 className="font-bold text-primary flex items-center gap-2">
                                 <Pencil size={16} /> Rediger materiale
                             </h3>
-                            <button onClick={cancelEdit} className="text-sm text-gray-500 hover:text-gray-700">Annuller</button>
+                            <button onClick={cancelEdit} className="text-sm text-skin-muted hover:text-skin-base-text">Annuller</button>
                         </div>
                     )}
                     <div className="flex gap-4 items-end flex-col md:flex-row">
                         <div className="flex-1 w-full">
-                            <label className="block text-xs font-medium text-gray-500 mb-1">{t('matName')}</label>
+                            <label className="block text-xs font-medium text-skin-muted mb-1">{t('matName')}</label>
                             <input
                                 type="text"
                                 value={newMaterial.name}
                                 onChange={(e) => setNewMaterial({ ...newMaterial, name: e.target.value })}
-                                className="w-full rounded border-gray-300 border p-2 text-sm"
+                                className="w-full rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
                                 placeholder="..."
                             />
                         </div>
                         <div className="w-full md:w-32">
-                            <label className="block text-xs font-medium text-gray-500 mb-1">{t('matCost')}</label>
+                            <label className="block text-xs font-medium text-skin-muted mb-1">{t('matCost')}</label>
                             <div className="relative">
                                 <input
                                     type="number"
                                     value={newMaterial.cost}
                                     onChange={(e) => setNewMaterial({ ...newMaterial, cost: e.target.value })}
-                                    className="w-full rounded border-gray-300 border p-2 text-sm"
+                                    className="w-full rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
                                     placeholder="0.00"
                                 />
-                                <span className="absolute right-8 top-2 text-gray-400 text-xs pointer-events-none">
+                                <span className="absolute right-8 top-2 text-skin-muted text-xs pointer-events-none">
                                     {/* spacer */}
                                 </span>
                             </div>
                         </div>
                         <div className="w-full md:w-40">
-                            <label className="block text-xs font-medium text-gray-500 mb-1">{t('matCat')}</label>
+                            <label className="block text-xs font-medium text-skin-muted mb-1">{t('matCat')}</label>
                             <select
                                 value={newMaterial.category}
                                 onChange={(e) => setNewMaterial({ ...newMaterial, category: e.target.value })}
-                                className="w-full rounded border-gray-300 border p-2 text-sm"
+                                className="w-full rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
                             >
-                                <option value="" disabled>Vælg...</option>
+                                <option value="" disabled>{t('lblSelect')}</option>
                                 {materialCategories.map(cat => (
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
@@ -714,17 +774,17 @@ const Settings = ({
                     </div>
 
                     <div className="w-full">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('setColorNote')}</label>
+                        <label className="block text-xs font-medium text-skin-muted mb-1">{t('setColorNote')}</label>
                         <textarea
                             value={newMaterial.note}
                             onChange={(e) => setNewMaterial({ ...newMaterial, note: e.target.value })}
-                            className="w-full rounded border-gray-300 border p-2 text-sm"
+                            className="w-full rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
                             rows="2"
                         />
                     </div>
 
                     <div className="flex justify-between items-center">
-                        <label className="cursor-pointer bg-white border border-gray-300 hover:bg-gray-50 py-2 px-3 rounded flex items-center gap-2 text-sm text-gray-700">
+                        <label className="cursor-pointer bg-skin-card border border-skin-border hover:bg-skin-base py-2 px-3 rounded flex items-center gap-2 text-sm text-skin-base-text">
                             <ImageIcon size={16} />
                             {newMaterial.images?.length > 0 ? (
                                 <span className="flex items-center gap-1">{newMaterial.images.length} billede(r)</span>
@@ -771,35 +831,35 @@ const Settings = ({
                         return (
                             <div key={cat} className="space-y-2">
                                 <div
-                                    className="flex items-center gap-2 cursor-pointer border-b pb-1 border-gray-200 group"
+                                    className="flex items-center gap-2 cursor-pointer border-b pb-1 border-skin-border group"
                                     onClick={() => toggleSection(`mat-${cat}`)}
                                 >
-                                    {isCollapsed ? <ChevronRight size={16} className="text-gray-400 group-hover:text-indigo-600" /> : <ChevronDown size={16} className="text-gray-400 group-hover:text-indigo-600" />}
-                                    <h4 className="font-semibold text-gray-700 select-none text-sm">
+                                    {isCollapsed ? <ChevronRight size={16} className="text-skin-muted group-hover:text-primary" /> : <ChevronDown size={16} className="text-skin-muted group-hover:text-primary" />}
+                                    <h4 className="font-semibold text-skin-base-text select-none text-sm">
                                         {cat} ({catMaterials.length})
                                     </h4>
                                 </div>
                                 {!isCollapsed && (
                                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 animate-fadeIn">
                                         {catMaterials.map(mat => (
-                                            <div key={mat.id} className="relative group bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                                            <div key={mat.id} className="relative group bg-skin-card border border-skin-border rounded-lg overflow-hidden hover:shadow-md transition-shadow">
                                                 <div className="absolute top-1 right-1 flex gap-1  z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <button
                                                         onClick={() => startEditMaterial(mat)}
-                                                        className="bg-white/90 hover:bg-white text-indigo-600 p-1 rounded shadow-sm"
+                                                        className="bg-white/90 hover:bg-white text-primary p-1 rounded shadow-sm"
                                                         title="Rediger"
                                                     >
                                                         <Pencil size={12} />
                                                     </button>
                                                     <button
                                                         onClick={() => deleteMaterial(mat.id)}
-                                                        className="bg-red-500 hover:bg-red-600 text-white p-1 rounded shadow-sm"
+                                                        className="bg-danger hover:bg-red-600 text-white p-1 rounded shadow-sm"
                                                         title="Slet"
                                                     >
                                                         <Trash2 size={12} />
                                                     </button>
                                                 </div>
-                                                <div className="h-24 bg-gray-100 flex items-center justify-center overflow-hidden">
+                                                <div className="h-24 bg-skin-base flex items-center justify-center overflow-hidden">
                                                     {mat.images && mat.images.length > 0 ? (
                                                         <div className="w-full h-full relative">
                                                             <img src={mat.images[0]} alt={mat.name} className="w-full h-full object-cover" />

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Layers, Image as ImageIcon, X, ChevronDown, ChevronRight } from 'lucide-react';
 
-const MaterialGallery = ({ materials, categories, t }) => {
+const MaterialGallery = ({ materials, categories, t, currency }) => {
     const [selectedMaterial, setSelectedMaterial] = useState(null);
     const [collapsedCategories, setCollapsedCategories] = useState({});
 
@@ -15,9 +15,9 @@ const MaterialGallery = ({ materials, categories, t }) => {
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-8">
             {/* HEADER */}
-            <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800">
-                    <Layers className="text-indigo-600" /> {t('tabMaterials')}
+            <section className="bg-skin-card p-6 rounded-xl shadow-sm border border-skin-border">
+                <h2 className="text-xl font-bold flex items-center gap-2 text-skin-base-text">
+                    <Layers className="text-primary" /> {t('tabMaterials')}
                 </h2>
             </section>
 
@@ -33,11 +33,11 @@ const MaterialGallery = ({ materials, categories, t }) => {
                         return (
                             <section key={category} className="space-y-4">
                                 <div
-                                    className="flex items-center gap-2 cursor-pointer border-b pb-2 border-gray-200 group"
+                                    className="flex items-center gap-2 cursor-pointer border-b pb-2 border-skin-border group"
                                     onClick={() => toggleCategory(category)}
                                 >
-                                    {isCollapsed ? <ChevronRight size={20} className="text-gray-400 group-hover:text-indigo-600" /> : <ChevronDown size={20} className="text-gray-400 group-hover:text-indigo-600" />}
-                                    <h3 className="text-xl font-semibold text-gray-700 select-none">
+                                    {isCollapsed ? <ChevronRight size={20} className="text-skin-muted group-hover:text-primary" /> : <ChevronDown size={20} className="text-skin-muted group-hover:text-primary" />}
+                                    <h3 className="text-xl font-semibold text-skin-base-text select-none">
                                         {category} ({catMaterials.length})
                                     </h3>
                                 </div>
@@ -46,11 +46,11 @@ const MaterialGallery = ({ materials, categories, t }) => {
                                         {catMaterials.map(mat => (
                                             <div
                                                 key={mat.id}
-                                                className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col cursor-pointer group"
+                                                className="bg-skin-card rounded-xl shadow-sm border border-skin-border overflow-hidden hover:shadow-md transition-shadow flex flex-col cursor-pointer group"
                                                 onClick={() => (mat.images?.length > 0 || mat.image) && setSelectedMaterial(mat)}
                                             >
                                                 {/* IMAGE AREA */}
-                                                <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden border-b border-gray-100 relative">
+                                                <div className="h-48 bg-skin-base flex items-center justify-center overflow-hidden border-b border-skin-border relative">
                                                     {(mat.images && mat.images.length > 0) || mat.image ? (
                                                         <div className="w-full h-full relative">
                                                             <img
@@ -65,7 +65,7 @@ const MaterialGallery = ({ materials, categories, t }) => {
                                                             )}
                                                         </div>
                                                     ) : (
-                                                        <div className="text-gray-300 flex flex-col items-center gap-2">
+                                                        <div className="text-skin-muted flex flex-col items-center gap-2">
                                                             <ImageIcon size={48} />
                                                         </div>
                                                     )}
@@ -74,22 +74,22 @@ const MaterialGallery = ({ materials, categories, t }) => {
                                                 {/* CONTENT AREA */}
                                                 <div className="p-5 flex-1 flex flex-col">
                                                     <div className="flex justify-between items-start mb-1">
-                                                        <h3 className="font-bold text-lg text-gray-900">{mat.name}</h3>
+                                                        <h3 className="font-bold text-lg text-skin-base-text">{mat.name}</h3>
                                                         {mat.cost && (
-                                                            <span className="bg-indigo-50 text-indigo-700 text-xs font-mono font-bold px-2 py-1 rounded-md border border-indigo-100">
-                                                                {mat.cost} kr
+                                                            <span className="bg-skin-accent text-primary text-xs font-mono font-bold px-2 py-1 rounded-md border border-skin-border">
+                                                                {mat.cost} {currency}
                                                             </span>
                                                         )}
                                                     </div>
 
                                                     {mat.note && (
-                                                        <div className="bg-amber-50 border border-amber-100 rounded-md p-3 mt-2 flex-1">
-                                                            <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{mat.note}</p>
+                                                        <div className="bg-skin-accent border border-skin-border rounded-md p-3 mt-2 flex-1">
+                                                            <p className="text-sm text-skin-base-text whitespace-pre-wrap leading-relaxed">{mat.note}</p>
                                                         </div>
                                                     )}
 
                                                     {!mat.note && (
-                                                        <div className="mt-2 text-sm text-gray-400 italic">
+                                                        <div className="mt-2 text-sm text-skin-muted italic">
                                                             - {t('setColorNote')} -
                                                         </div>
                                                     )}
@@ -109,9 +109,9 @@ const MaterialGallery = ({ materials, categories, t }) => {
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {materials.filter(m => !categories.includes(m.category)).map(mat => (
-                                    <div key={mat.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                                        <p className="font-bold">{mat.name}</p>
-                                        <p className="text-xs text-red-400">Invalid Category: {mat.category}</p>
+                                    <div key={mat.id} className="bg-skin-card rounded-xl shadow-sm border border-skin-border p-4">
+                                        <p className="font-bold text-skin-base-text">{mat.name}</p>
+                                        <p className="text-xs text-danger">Invalid Category: {mat.category}</p>
                                     </div>
                                 ))}
                             </div>
@@ -119,7 +119,7 @@ const MaterialGallery = ({ materials, categories, t }) => {
                     )}
                 </div>
             ) : (
-                <div className="text-center py-20 text-gray-400">
+                <div className="text-center py-20 text-skin-muted">
                     <Layers size={64} className="mx-auto mb-4 opacity-50" />
                     <p>{t('galleryNoMaterials') || 'Ingen materialer fundet.'}</p>
                 </div>

@@ -1,8 +1,75 @@
-import React from 'react';
-import { Trash2, FileText, TrendingUp, Package, DollarSign, Image as ImageIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { Trash2, FileText, TrendingUp, Package, DollarSign, Image as ImageIcon, Pencil, Clock, History as HistoryIcon, CheckSquare, Square } from 'lucide-react';
 import { generateInvoice } from '../utils/pdfGenerator';
 
-const History = ({ entries, onDelete, onUpdate, t, settings }) => {
+const History = ({ entries, onDelete, onUpdate, t, settings, setSettings, onEdit }) => {
+    const [selectedIds, setSelectedIds] = useState([]);
+    const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+    const [invoiceNumInput, setInvoiceNumInput] = useState('');
+
+    const toggleSelect = (id) => {
+        setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedIds.length === entries.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(entries.map(e => e.id));
+        }
+    };
+
+    const prepareInvoice = (singleId = null) => {
+        if (singleId) {
+            setSelectedIds([singleId]);
+        } else if (selectedIds.length === 0) {
+            return; // Should not happen
+        }
+
+        // Calculate next number
+        const currentYear = new Date().getFullYear();
+        let year = settings.invoiceYear || currentYear;
+        let seq = settings.invoiceSeq || 1;
+
+        if (year < currentYear) {
+            year = currentYear;
+            seq = 1;
+        }
+
+        const formattedSeq = String(seq).padStart(3, '0');
+        setInvoiceNumInput(`${year}-${formattedSeq}`);
+        setShowInvoiceModal(true);
+    };
+
+    const confirmGenerateInvoice = () => {
+        const selectedEntries = entries.filter(e => selectedIds.includes(e.id));
+
+        // Use the input value (which might have been edited)
+        generateInvoice(selectedEntries.length === 1 ? selectedEntries[0] : selectedEntries, settings, invoiceNumInput);
+
+        // Update sequence
+        const parts = invoiceNumInput.split('-');
+        if (parts.length === 2) {
+            const inputYear = parseInt(parts[0]);
+            const inputSeq = parseInt(parts[1]);
+
+            if (!isNaN(inputYear) && !isNaN(inputSeq)) {
+                // If the used number >= current settings, increment next
+                const currentSeq = (settings.invoiceYear === inputYear) ? settings.invoiceSeq : 0;
+
+                if (inputYear > (settings.invoiceYear || 0) || (inputYear === settings.invoiceYear && inputSeq >= currentSeq)) {
+                    setSettings(prev => ({
+                        ...prev,
+                        invoiceYear: inputYear,
+                        invoiceSeq: inputSeq + 1
+                    }));
+                }
+            }
+        }
+
+        setShowInvoiceModal(false);
+        setSelectedIds([]);
+    };
 
     const handleImageUpload = (id, e) => {
         const file = e.target.files[0];
@@ -33,111 +100,170 @@ const History = ({ entries, onDelete, onUpdate, t, settings }) => {
     const cur = settings.currency || 'kr';
 
     return (
-        <div className="p-6 max-w-7xl mx-auto space-y-8">
+        <div className="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
 
             {/* STATS CARDS */}
+
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {Object.entries(projectStats).map(([name, stats]) => (
-                    <div key={name} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                        <h3 className="font-bold text-gray-800 border-b pb-2 mb-2 truncate" title={name}>{name}</h3>
+                    <div key={name} className="bg-skin-card p-4 rounded-xl shadow-sm border border-skin-border">
+                        <h3 className="font-bold text-skin-base-text border-b border-skin-border pb-2 mb-2 truncate" title={name}>{name}</h3>
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                                <span className="text-gray-500">{t('histCount')}</span>
-                                <span className="font-mono">{stats.count}</span>
+                                <span className="text-skin-muted">{t('histCount')}</span>
+                                <span className="font-mono text-skin-base-text">{stats.count}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-500">{t('histMat')}</span>
-                                <span className="font-mono">{(stats.material / 1000).toFixed(1)} kg</span>
+                                <span className="text-skin-muted">{t('histMat')}</span>
+                                <span className="font-mono text-skin-base-text">{(stats.material / 1000).toFixed(1)} kg</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-gray-500">{t('histCost')}</span>
-                                <span className="font-mono">{stats.cost.toFixed(0)} {cur}</span>
+                                <span className="text-skin-muted">{t('histCost')}</span>
+                                <span className="font-mono text-skin-base-text">{stats.cost.toFixed(0)} {cur}</span>
                             </div>
                             <div className="flex justify-between">
-                                <span className="text-green-600 font-bold">{t('histSales')}</span>
-                                <span className="font-mono font-bold text-green-600">{stats.sales.toFixed(0)} {cur}</span>
+                                <span className="text-success font-bold">{t('histSales')}</span>
+                                <span className="font-mono font-bold text-success">{stats.sales.toFixed(0)} {cur}</span>
                             </div>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* TABLE */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left">
-                        <thead className="bg-gray-50 border-b border-gray-200">
-                            <tr>
-                                <th className="p-4 font-semibold text-gray-600">{t('histTableDate')}</th>
-                                <th className="p-4 font-semibold text-gray-600">{t('histTableProject')}</th>
-                                <th className="p-4 font-semibold text-gray-600 text-right">{t('histTableMat')}</th>
-                                <th className="p-4 font-semibold text-gray-600 text-right">{t('histTableTime')}</th>
-                                <th className="p-4 font-semibold text-gray-600 text-right">{t('histTableCost')} ({cur})</th>
-                                <th className="p-4 font-semibold text-gray-600 text-right">{t('histTableSales')} ({cur})</th>
-                                <th className="p-4 font-semibold text-gray-600 text-center">{t('histTableAction')}</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                            {entries.length === 0 ? (
-                                <tr>
-                                    <td colSpan="7" className="p-8 text-center text-gray-400">
-                                        {t('histNoData')}
-                                    </td>
-                                </tr>
-                            ) : (
-                                entries.map(entry => (
-                                    <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="p-4 text-gray-600 text-sm whitespace-nowrap">{entry.date}</td>
-                                        <td className="p-4 font-medium text-gray-900">{entry.projectName}</td>
-                                        <td className="p-4 text-right font-mono text-sm text-gray-600">
-                                            {((parseFloat(entry.amount1to1) || 0) + (parseFloat(entry.amount2to1) || 0))}
-                                        </td>
-                                        <td className="p-4 text-right font-mono text-sm text-gray-600">{entry.time}</td>
-                                        <td className="p-4 text-right font-mono text-sm text-gray-600">
-                                            {entry.results?.total.toFixed(2)}
-                                        </td>
-                                        <td className="p-4 text-right font-mono text-sm font-bold text-green-600">
-                                            {entry.results?.sales.toFixed(2)}
-                                        </td>
-                                        <td className="p-4 flex items-center justify-center gap-2">
-                                            <div className="relative">
-                                                {entry.projectImage ? (
-                                                    <div className="w-10 h-10 rounded overflow-hidden border border-gray-200 group relative">
-                                                        <img src={entry.projectImage} alt="Project" className="w-full h-full object-cover" />
-                                                        <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                                                            <ImageIcon size={14} className="text-white" />
-                                                            <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(entry.id, e)} />
-                                                        </label>
-                                                    </div>
-                                                ) : (
-                                                    <label className="p-2 text-gray-400 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer flex items-center justify-center" title="Tilføj billede">
-                                                        <ImageIcon size={18} />
-                                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleImageUpload(entry.id, e)} />
-                                                    </label>
-                                                )}
+            {/* HISTORY LIST */}
+            {
+                entries.length === 0 ? (
+                    <div className="bg-skin-card p-8 rounded-lg shadow-sm text-center border border-skin-border">
+                        <HistoryIcon size={48} className="mx-auto text-skin-muted mb-4" />
+                        <h3 className="text-lg font-medium text-skin-base-text mb-1">{t('histNoHistory')}</h3>
+                        <p className="text-skin-muted">{t('histStartCalc')}</p>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {entries.map((entry) => (
+                            <div key={entry.id} className={`bg-skin-card rounded-lg shadow-sm border border-skin-border overflow-hidden transition-all hover:shadow-md ${selectedIds.includes(entry.id) ? 'ring-2 ring-primary border-primary' : ''}`}>
+                                <div className="p-4 sm:px-6">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="flex items-start gap-4">
+                                            <button
+                                                onClick={() => toggleSelect(entry.id)}
+                                                className="mt-1 text-skin-muted hover:text-primary transition-colors focus:outline-none"
+                                            >
+                                                {selectedIds.includes(entry.id) ? <CheckSquare className="text-primary" /> : <Square />}
+                                            </button>
+                                            <div>
+                                                <h3 className="text-lg font-bold text-primary flex items-center gap-2">
+                                                    {entry.projectName || t('histTableProject')}
+                                                </h3>
+                                                <p className="text-xs text-skin-muted flex items-center gap-1 mt-1">
+                                                    <Clock size={12} /> {entry.date}
+                                                </p>
                                             </div>
-                                            <button
-                                                onClick={() => generateInvoice(entry, settings)}
-                                                className="p-2 text-indigo-500 hover:bg-indigo-50 rounded-lg transition-colors"
-                                                title={t('pdfBtn')}
-                                            >
-                                                <FileText size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => onDelete(entry.id)}
-                                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-2xl font-bold text-success">{entry.results.sales.toFixed(2)} {cur}</p>
+                                            <p className="text-xs text-skin-muted">
+                                                {t('resCost')}: {entry.results.total.toFixed(2)} {cur}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-4 border-t border-b border-skin-border py-3 bg-skin-base/50">
+                                        <div>
+                                            <p className="text-xs text-skin-muted mb-1">{t('amount1to1')}</p>
+                                            <p className="font-medium text-skin-base-text">{entry.amount1to1} g</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-skin-muted mb-1">{t('amount2to1')}</p>
+                                            <p className="font-medium text-skin-base-text">{entry.amount2to1} g</p>
+                                        </div>
+                                        {entry.customMaterials && entry.customMaterials.length > 0 && (
+                                            <div className="col-span-2">
+                                                <p className="text-xs text-skin-muted mb-1">Materialer</p>
+                                                <p className="font-medium text-skin-base-text truncate">
+                                                    {entry.customMaterials.map(m => m.name).join(', ')}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <div className="flex justify-end gap-2">
+                                        <button
+                                            onClick={() => prepareInvoice(entry.id)}
+                                            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-primary bg-primary/10 hover:bg-primary/20 rounded transition-colors"
+                                        >
+                                            <FileText size={16} />
+                                            <span>PDF</span>
+                                        </button>
+                                        <button
+                                            onClick={() => onEdit(entry)}
+                                            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-skin-base-text bg-skin-base hover:bg-skin-border rounded border border-skin-border transition-colors"
+                                        >
+                                            <Pencil size={16} />
+                                            <span>{t('btnEdit')}</span>
+                                        </button>
+                                        <button
+                                            onClick={() => onDelete(entry.id)}
+                                            className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-danger bg-danger/10 hover:bg-danger/20 rounded transition-colors"
+                                        >
+                                            <Trash2 size={16} />
+                                            <span>{t('btnDelete')}</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )
+            }
+
+
+            {/* INVOICE NUMBER MODAL */}
+            {
+                showInvoiceModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+                        <div className="bg-skin-card rounded-lg shadow-xl p-6 w-full max-w-sm border border-skin-border">
+                            <h3 className="text-lg font-bold text-skin-base-text mb-4">PDF Invoice</h3>
+                            <label className="block text-sm font-medium text-skin-muted mb-2">Invoice Number</label>
+                            <input
+                                type="text"
+                                className="w-full p-2 rounded border border-skin-border bg-skin-input text-skin-base-text font-mono text-lg mb-6 focus:ring-2 focus:ring-primary outline-none"
+                                value={invoiceNumInput}
+                                onChange={(e) => setInvoiceNumInput(e.target.value)}
+                            />
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowInvoiceModal(false)}
+                                    className="px-4 py-2 rounded text-skin-base-text hover:bg-skin-base"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={confirmGenerateInvoice}
+                                    className="px-4 py-2 rounded bg-primary text-white hover:bg-primary-hover font-medium"
+                                >
+                                    Generate PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )
+            }
+            {
+                selectedIds.length > 0 && (
+                    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-40 bg-skin-card p-1 rounded-full shadow-xl border border-skin-border animate-in slide-in-from-bottom-10 fade-in duration-300">
+                        <button
+                            onClick={() => prepareInvoice()}
+                            className="bg-primary text-white px-6 py-3 rounded-full flex items-center gap-2 hover:bg-primary-hover transition-colors font-medium text-lg shadow-sm"
+                        >
+                            <FileText size={24} />
+                            Generating Merged Invoice ({selectedIds.length})
+                        </button>
+                    </div>
+                )
+            }
+        </div >
     );
 };
 

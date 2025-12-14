@@ -1,6 +1,6 @@
 # ⚗️ Epoxy Calculator
 
-![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 A desktop application for calculating epoxy casting costs, managing materials, and tracking project history. Built with Electron and React.
@@ -9,12 +9,14 @@ A desktop application for calculating epoxy casting costs, managing materials, a
 
 - **🧮 Cost Calculator**: Calculate prices based on material usage, labor, mold wear, consumables, and more.
 - **📜 Project History**: Save calculations and view summarized project stats.
+- **📄 PDF Export**: Generate professional PDF invoices and summaries of your projects.
 - **🧪 Material Management**: Manage custom materials, densities, and categories.
 - **🎨 Color Library**: Save and organize your color pigments.
 - **⚙️ Settings**: Customize hourly rates, currency, and default costs.
 - **🔒 Privacy & Control**: Data is stored in files you own. No external cloud servers or subscriptions.
 - **💾 Backup & Restore**: Export/Import your full database including images.
 - **☁️ Shared Database**: Configurable storage path for syncing data across computers via shared folders.
+- **💲Invoice Management**: Manage invoices and merge multiple invoices into one.
 
 ## 📥 Installation
 
@@ -60,15 +62,13 @@ The output file will be located in the `dist-electron/` directory.
 - **Lucide React**: Icons
 - **✨ Vibe-code**: Coded with Vibe-code
 
-## 🆕 Latest Updates (v1.2.0)
+## 🆕 Latest Updates (v1.3.1)
 
-- **PDF Export Aggregation**: "Vacuum Surcharge", "Mold Wear", and "Buffer" costs are now aggregated into a single line item "**Machine Surcharge**" in the generated PDF invoices for a cleaner professional look.
-- **Database Backup System**: added new **Data Management** tools in settings:
-  - **Export Database**: Download your entire database (including images) as a `.zip` file.
-  - **Import Database**: Restore your database from a backup file (automatically creates a safety backup of current data).
-- **Shared Database Support**:
-  - **Configurable Storage**: You can now change the location of your database file.
-  - **Network/Cloud Sync**: Point the database to a shared folder (OneDrive, Dropbox, Network Drive) to share data between multiple computers.
+- **Themes**: Major update ensuring themes apply consistently across the entire application.
+- **Color Pricing**: Added price field to colors in the library.
+- **Bug Fixes**: Minor bug fixes and UI improvements.
+- **Invorce number**: Added invoice number to invoices.
+- **Invorce merger**: Added invoice merger to invoices.
 
 
 ## 📄 License

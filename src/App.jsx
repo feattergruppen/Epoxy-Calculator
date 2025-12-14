@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calculator as CalcIcon, History as HistoryIcon, Settings as SettingsIcon, Palette, Layers } from 'lucide-react';
+import { Calculator as CalculatorIcon, History as HistoryIcon, Settings as SettingsIcon, Palette, Layers, Pencil, X } from 'lucide-react';
 import Calculator from './components/Calculator';
 import History from './components/History';
 import Settings from './components/Settings';
@@ -30,13 +30,35 @@ function App() {
         price1to1: 125.0, price2to1: 125.0, hourlyRate: 150.0, buffer: 15.0,
         moldWear: 10.0, vacuumCost: 5.0, consumables: 5.0,
         language: getSystemLanguage(),
-        currency: 'kr'
+        currency: 'kr',
+        invoiceYear: new Date().getFullYear(),
+        invoiceSeq: 1
     });
     const [entries, setEntries] = useState([]);
     const [colors, setColors] = useState([]);
     const [materials, setMaterials] = useState([]);
     const [materialCategories, setMaterialCategories] = useState(['Træ', 'Metal', 'Inserts']); // Default categories
     const [colorCategories, setColorCategories] = useState(['Mica Pulver', 'Flydende Farve', 'Alcohol Ink']); // Default color categories
+
+    // Persistent Calculator State
+    const [calculatorInputs, setCalculatorInputs] = useState({
+        projectName: '',
+        amount1to1: 0,
+        amount2to1: 0,
+        customMaterials: [],
+        time: 0,
+        extrasCost: 0,
+        packagingCost: 0,
+        useVacuum: true,
+        includeLabor: true,
+        includeProfit: true,
+        includeBuffer: true,
+        includeMoldWear: true,
+        note: '',
+        projectImage: null,
+        rounding: ''
+    });
+    const [editingId, setEditingId] = useState(null);
 
     // Load data on mount
     useEffect(() => {
@@ -65,6 +87,13 @@ function App() {
         init();
     }, []);
 
+    // Apply theme
+    useEffect(() => {
+        const theme = settings.theme || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        document.documentElement.className = theme; // Also set as class for redundancy
+    }, [settings.theme]);
+
     // Auto-save on changes
     useEffect(() => {
         if (!loading) {
@@ -79,9 +108,100 @@ function App() {
         return translations[lang][key] || key;
     };
 
-    const handleSaveEntry = (newEntry) => {
-        setEntries(prev => [newEntry, ...prev]);
+    const handleSaveEntry = (entryData) => {
+        if (editingId) {
+            // Update existing
+            setEntries(prev => prev.map(e => e.id === editingId ? { ...e, ...entryData, id: editingId, date: e.date } : e));
+            // We do NOT clear inputs here, so user can continue editing or see what they saved.
+            // But we should probably exit edit mode? 
+            // Let's clear edit mode but keep inputs for now, or clear everything. 
+            // User request: "husker hvad der er skrevet". So let's keep it.
+            // Actually, for a NEW save, we usually clear. But for edit...
+            // Let's stick to standard behavior: Save = Done. 
+            // But for "persistence", we keep inputs if they switch tabs. 
+            // If they SAVE, it's a "submit", so we usually clear.
+            setEditingId(null);
+            setCalculatorInputs({
+                projectName: '',
+                amount1to1: 0,
+                amount2to1: 0,
+                customMaterials: [],
+                time: 0,
+                extrasCost: 0,
+                packagingCost: 0,
+                useVacuum: true,
+                includeLabor: true,
+                includeProfit: true,
+                includeBuffer: true,
+                includeMoldWear: true,
+                note: '',
+                projectImage: null
+            });
+        } else {
+            // Create new
+            setEntries(prev => [entryData, ...prev]);
+            // Clear inputs after save new
+            setCalculatorInputs({
+                projectName: '',
+                amount1to1: 0,
+                amount2to1: 0,
+                customMaterials: [],
+                time: 0,
+                extrasCost: 0,
+                packagingCost: 0,
+                useVacuum: true,
+                includeLabor: true,
+                includeProfit: true,
+                includeBuffer: true,
+                includeMoldWear: true,
+                note: '',
+                projectImage: null
+            });
+        }
         setActiveTab('history');
+    };
+
+    const handleEditEntry = (entry) => {
+        setCalculatorInputs({
+            projectName: entry.projectName,
+            amount1to1: entry.amount1to1 || 0,
+            amount2to1: entry.amount2to1 || 0,
+            customMaterials: entry.customMaterials || [],
+            time: entry.time || 0,
+            extrasCost: entry.extrasCost || 0,
+            packagingCost: entry.packagingCost || 0,
+            useVacuum: entry.useVacuum !== undefined ? entry.useVacuum : true,
+            includeLabor: entry.includeLabor !== undefined ? entry.includeLabor : true,
+            includeProfit: entry.includeProfit !== undefined ? entry.includeProfit : true,
+            includeBuffer: entry.includeBuffer !== undefined ? entry.includeBuffer : true,
+            includeMoldWear: entry.includeMoldWear !== undefined ? entry.includeMoldWear : true,
+            note: entry.note || '',
+            projectImage: entry.projectImage || null,
+            rounding: entry.rounding || ''
+        });
+        setEditingId(entry.id);
+        setActiveTab('calculator');
+    };
+
+    const handleCancelEdit = () => {
+        setEditingId(null);
+        setCalculatorInputs({
+            projectName: '',
+            amount1to1: 0,
+            amount2to1: 0,
+            customMaterials: [],
+            time: 0,
+            extrasCost: 0,
+            packagingCost: 0,
+            useVacuum: true,
+            includeLabor: true,
+            includeProfit: true,
+            includeBuffer: true,
+            includeMoldWear: true,
+            note: '',
+            projectImage: null,
+            rounding: ''
+        });
     };
 
     const handleDeleteEntry = (id) => {
@@ -99,75 +219,88 @@ function App() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-100 flex flex-col">
-            {/* HEADER / NAV */}
-            <header className="bg-white shadow-sm sticky top-0 z-10">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex justify-between h-16">
-                        <div className="flex items-center">
-                            <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                                {t('appTitle')}
-                            </span>
-                        </div>
-                        <nav className="flex space-x-4 items-center overflow-x-auto">
-                            <button
-                                onClick={() => setActiveTab('calculator')}
-                                className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === 'calculator' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                            >
-                                <CalcIcon size={18} /> {t('tabCalculator')}
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('history')}
-                                className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === 'history' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                            >
-                                <HistoryIcon size={18} /> {t('tabHistory')} ({entries.length})
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('colors')}
-                                className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === 'colors' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                            >
-                                <Palette size={18} /> {t('tabColors')}
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('materials')}
-                                className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === 'materials' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                            >
-                                <Layers size={18} /> {t('tabMaterials')}
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('settings')}
-                                className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors whitespace-nowrap ${activeTab === 'settings' ? 'bg-indigo-50 text-indigo-700' : 'text-gray-500 hover:text-gray-700'
-                                    }`}
-                            >
-                                <SettingsIcon size={18} /> {t('tabSettings')}
-                            </button>
-                        </nav>
-                    </div>
+        <div className="min-h-screen bg-skin-base text-skin-base-text transition-colors duration-300">
+            <header className="bg-gradient-to-r from-primary to-primary-hover text-white p-4 shadow-lg sticky top-0 z-50">
+                <div className="max-w-4xl mx-auto flex justify-between items-center">
+                    <h1 className="text-2xl font-bold flex items-center gap-2">
+                        <CalculatorIcon size={28} />
+                        {t('appTitle')}
+                    </h1>
+                    <nav className="flex gap-2">
+                        <button
+                            onClick={() => setActiveTab('calculator')}
+                            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'calculator' ? 'bg-white text-primary font-bold shadow' : 'hover:bg-white/10 text-white'}`}
+                        >
+                            <CalculatorIcon size={18} />
+                            <span className="hidden sm:inline">{t('tabCalculator')}</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('history')}
+                            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'history' ? 'bg-white text-primary font-bold shadow' : 'hover:bg-white/10 text-white'}`}
+                        >
+                            <HistoryIcon size={18} />
+                            <span className="hidden sm:inline">{t('tabHistory')}</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('colors')}
+                            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'colors' ? 'bg-white text-primary font-bold shadow' : 'hover:bg-white/10 text-white'}`}
+                        >
+                            <Palette size={18} />
+                            <span className="hidden sm:inline">{t('tabColors')}</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('materials')}
+                            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'materials' ? 'bg-white text-primary font-bold shadow' : 'hover:bg-white/10 text-white'}`}
+                        >
+                            <Layers size={18} />
+                            <span className="hidden sm:inline">{t('tabMaterials')}</span>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('settings')}
+                            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${activeTab === 'settings' ? 'bg-white text-primary font-bold shadow' : 'hover:bg-white/10 text-white'}`}
+                        >
+                            <SettingsIcon size={18} />
+                            <span className="hidden sm:inline">{t('tabSettings')}</span>
+                        </button>
+                    </nav>
                 </div>
             </header>
 
-            {/* CONTENT */}
-            <main className="flex-1 py-8">
+            <main className="max-w-4xl mx-auto p-4 md:py-8">
                 {activeTab === 'calculator' && (
-                    <Calculator settings={settings} onSave={handleSaveEntry} t={t} />
+                    <Calculator
+                        settings={settings}
+                        onSave={handleSaveEntry}
+                        t={t}
+                        inputs={calculatorInputs}
+                        setInputs={setCalculatorInputs}
+                        isEditing={!!editingId}
+                        onCancel={handleCancelEdit}
+                        colors={colors}
+                        materials={materials}
+                    />
                 )}
                 {activeTab === 'history' && (
-                    <History entries={entries} onDelete={handleDeleteEntry} onUpdate={handleUpdateEntry} t={t} settings={settings} />
+                    <History
+                        entries={entries}
+                        settings={settings}
+                        setSettings={setSettings}
+                        onDelete={handleDeleteEntry}
+                        onEdit={handleEditEntry}
+                        t={t}
+                    />
                 )}
                 {activeTab === 'colors' && (
-                    <ColorGallery colors={colors} categories={colorCategories} t={t} />
+                    <ColorGallery colors={colors} categories={colorCategories} t={t} currency={settings.currency || 'kr'} />
                 )}
                 {activeTab === 'materials' && (
-                    <MaterialGallery materials={materials} categories={materialCategories} t={t} />
+                    <MaterialGallery materials={materials} categories={materialCategories} t={t} currency={settings.currency || 'kr'} />
                 )}
                 {activeTab === 'settings' && (
                     <Settings
                         settings={settings}
                         setSettings={setSettings}
+                        t={t}
                         colors={colors}
                         setColors={setColors}
                         materials={materials}
@@ -176,7 +309,6 @@ function App() {
                         setMaterialCategories={setMaterialCategories}
                         colorCategories={colorCategories}
                         setColorCategories={setColorCategories}
-                        t={t}
                     />
                 )}
             </main>

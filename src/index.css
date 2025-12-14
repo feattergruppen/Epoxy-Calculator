@@ -2,7 +2,82 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom Styles if needed */
+@layer base {
+  :root {
+    /* LIGHT THEME (Default) */
+    --color-primary: #4f46e5;
+    /* indigo-600 */
+    --color-primary-hover: #4338ca;
+    /* indigo-700 */
+    --color-bg-base: #f9fafb;
+    /* gray-50 */
+    --color-bg-card: #ffffff;
+    /* white */
+    --color-bg-input: #ffffff;
+    /* white */
+    --color-text-base: #111827;
+    /* gray-900 */
+    --color-text-muted: #6b7280;
+    /* gray-500 */
+    --color-border: #d1d5db;
+    /* gray-300 */
+    --color-accent: #e0e7ff;
+    /* indigo-100 */
+    --color-success: #16a34a;
+    /* green-600 */
+    --color-danger: #ef4444;
+    /* red-500 */
+  }
+
+  /* End of @layer base :root default definitions */
+}
+
+/* Theme Overrides - Global Scope */
+:root[data-theme='dark'],
+html.dark {
+  --color-primary: #6366f1;
+  --color-primary-hover: #818cf8;
+  --color-bg-base: #111827;
+  --color-bg-card: #1f2937;
+  --color-bg-input: #374151;
+  --color-text-base: #f3f4f6;
+  --color-text-muted: #9ca3af;
+  --color-border: #4b5563;
+  --color-accent: #312e81;
+  --color-success: #22c55e;
+  --color-danger: #f87171;
+}
+
+:root[data-theme='ocean'],
+html.ocean {
+  --color-primary: #0ea5e9;
+  --color-primary-hover: #0284c7;
+  --color-bg-base: #f0f9ff;
+  --color-bg-card: #ffffff;
+  --color-bg-input: #ffffff;
+  --color-text-base: #0c4a6e;
+  --color-text-muted: #64748b;
+  --color-border: #bae6fd;
+  --color-accent: #e0f2fe;
+  --color-success: #10b981;
+  --color-danger: #f43f5e;
+}
+
+:root[data-theme='sunset'],
+html.sunset {
+  --color-primary: #f97316;
+  --color-primary-hover: #ea580c;
+  --color-bg-base: #fff7ed;
+  --color-bg-card: #ffffff;
+  --color-bg-input: #ffffff;
+  --color-text-base: #431407;
+  --color-text-muted: #78350f;
+  --color-border: #fed7aa;
+  --color-accent: #ffedd5;
+  --color-success: #84cc16;
+  --color-danger: #ef4444;
+}
+
 body {
-  @apply bg-gray-50 text-gray-900;
+  @apply bg-skin-base text-skin-base;
 }

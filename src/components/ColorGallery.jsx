@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Palette, Image as ImageIcon, X, ChevronDown, ChevronRight } from 'lucide-react';
 
-const ColorGallery = ({ colors, categories, t }) => {
+const ColorGallery = ({ colors, categories, t, currency }) => {
     const [selectedImage, setSelectedImage] = useState(null);
     const [collapsedCategories, setCollapsedCategories] = useState({});
 
@@ -15,9 +15,9 @@ const ColorGallery = ({ colors, categories, t }) => {
     return (
         <div className="p-6 max-w-7xl mx-auto space-y-8">
             {/* HEADER */}
-            <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800">
-                    <Palette className="text-indigo-600" /> {t('galleryTitle')}
+            <section className="bg-skin-card p-6 rounded-xl shadow-sm border border-skin-border">
+                <h2 className="text-xl font-bold flex items-center gap-2 text-skin-base-text">
+                    <Palette className="text-primary" /> {t('galleryTitle')}
                 </h2>
             </section>
 
@@ -39,11 +39,11 @@ const ColorGallery = ({ colors, categories, t }) => {
                         return (
                             <section key={type} className="space-y-4">
                                 <div
-                                    className="flex items-center gap-2 cursor-pointer border-b pb-2 border-gray-200 group"
+                                    className="flex items-center gap-2 cursor-pointer border-b pb-2 border-skin-border group"
                                     onClick={() => toggleCategory(type)}
                                 >
-                                    {isCollapsed ? <ChevronRight size={20} className="text-gray-400 group-hover:text-indigo-600" /> : <ChevronDown size={20} className="text-gray-400 group-hover:text-indigo-600" />}
-                                    <h3 className="text-xl font-semibold text-gray-700 select-none">
+                                    {isCollapsed ? <ChevronRight size={20} className="text-skin-muted group-hover:text-primary" /> : <ChevronDown size={20} className="text-skin-muted group-hover:text-primary" />}
+                                    <h3 className="text-xl font-semibold text-skin-base-text select-none">
                                         {title} ({typeColors.length})
                                     </h3>
                                 </div>
@@ -52,11 +52,11 @@ const ColorGallery = ({ colors, categories, t }) => {
                                         {typeColors.map(color => (
                                             <div
                                                 key={color.id}
-                                                className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col cursor-pointer group"
+                                                className="bg-skin-card rounded-xl shadow-sm border border-skin-border overflow-hidden hover:shadow-md transition-shadow flex flex-col cursor-pointer group"
                                                 onClick={() => color.image && setSelectedImage(color)}
                                             >
                                                 {/* IMAGE AREA */}
-                                                <div className="h-48 bg-gray-100 flex items-center justify-center overflow-hidden border-b border-gray-100 relative">
+                                                <div className="h-48 bg-skin-base flex items-center justify-center overflow-hidden border-b border-skin-border relative">
                                                     {color.image ? (
                                                         <img
                                                             src={color.image}
@@ -64,7 +64,7 @@ const ColorGallery = ({ colors, categories, t }) => {
                                                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                                                         />
                                                     ) : (
-                                                        <div className="text-gray-300 flex flex-col items-center gap-2">
+                                                        <div className="text-skin-muted flex flex-col items-center gap-2">
                                                             <ImageIcon size={48} />
                                                         </div>
                                                     )}
@@ -72,16 +72,23 @@ const ColorGallery = ({ colors, categories, t }) => {
 
                                                 {/* CONTENT AREA */}
                                                 <div className="p-5 flex-1 flex flex-col">
-                                                    <h3 className="font-bold text-lg text-gray-900 mb-1">{color.name}</h3>
+                                                    <div className="flex justify-between items-start mb-1">
+                                                        <h3 className="font-bold text-lg text-skin-base-text">{color.name}</h3>
+                                                        {color.cost && (
+                                                            <span className="bg-skin-accent text-primary text-xs font-mono font-bold px-2 py-1 rounded-md border border-skin-border">
+                                                                {color.cost} {currency}
+                                                            </span>
+                                                        )}
+                                                    </div>
 
                                                     {color.note && (
-                                                        <div className="bg-amber-50 border border-amber-100 rounded-md p-3 mt-2 flex-1">
-                                                            <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{color.note}</p>
+                                                        <div className="bg-skin-accent border border-skin-border rounded-md p-3 mt-2 flex-1">
+                                                            <p className="text-sm text-skin-base-text whitespace-pre-wrap leading-relaxed">{color.note}</p>
                                                         </div>
                                                     )}
 
                                                     {!color.note && (
-                                                        <div className="mt-2 text-sm text-gray-400 italic">
+                                                        <div className="mt-2 text-sm text-skin-muted italic">
                                                             - {t('setColorNote')} -
                                                         </div>
                                                     )}
@@ -95,7 +102,7 @@ const ColorGallery = ({ colors, categories, t }) => {
                     })}
                 </div>
             ) : (
-                <div className="text-center py-20 text-gray-400">
+                <div className="text-center py-20 text-skin-muted">
                     <Palette size={64} className="mx-auto mb-4 opacity-50" />
                     <p>{t('galleryNoColors')}</p>
                 </div>

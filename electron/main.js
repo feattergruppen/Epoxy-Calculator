@@ -109,9 +109,23 @@ ipcMain.handle('save-data', async (event, data) => {
 ipcMain.handle('save-pdf', async (event, { dataBase64, filename }) => {
     try {
         const win = BrowserWindow.getFocusedWindow();
+        let defaultDir = app.getPath('documents');
+
+        // Try to read last saved path from config
+        try {
+            if (fs.existsSync(CONFIG_PATH)) {
+                const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+                if (config.lastPdfPath && fs.existsSync(config.lastPdfPath)) {
+                    defaultDir = config.lastPdfPath;
+                }
+            }
+        } catch (e) {
+            console.error("Error reading config for pdf path", e);
+        }
+
         const { canceled, filePath } = await dialog.showSaveDialog(win, {
             title: 'Gem Faktura',
-            defaultPath: path.join(app.getPath('documents'), filename),
+            defaultPath: path.join(defaultDir, filename),
             filters: [
                 { name: 'PDF Files', extensions: ['pdf'] }
             ]
@@ -122,6 +136,20 @@ ipcMain.handle('save-pdf', async (event, { dataBase64, filename }) => {
         }
 
         fs.writeFileSync(filePath, Buffer.from(dataBase64, 'base64'));
+
+        // Save new path to config
+        try {
+            const newDir = path.dirname(filePath);
+            let config = {};
+            if (fs.existsSync(CONFIG_PATH)) {
+                config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+            }
+            config.lastPdfPath = newDir;
+            fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
+        } catch (e) {
+            console.error("Error saving config with pdf path", e);
+        }
+
         return { success: true, filePath };
     } catch (error) {
         console.error('Error saving PDF:', error);
@@ -134,10 +162,10 @@ ipcMain.handle('get-data-path', () => {
     return path.dirname(DATA_PATH);
 });
 
-ipcMain.handle('change-data-path', async () => {
+ipcMain.handle('change-data-path', async (event, options = {}) => {
     const win = BrowserWindow.getFocusedWindow();
     const { canceled, filePaths } = await dialog.showOpenDialog(win, {
-        title: 'Select Database Folder',
+        title: options.title || 'Select Database Folder',
         properties: ['openDirectory']
     });
 
@@ -151,10 +179,10 @@ ipcMain.handle('change-data-path', async () => {
         // Offer to copy current data
         const choice = dialog.showMessageBoxSync(win, {
             type: 'question',
-            buttons: ['Copy current data', 'Start fresh', 'Cancel'],
-            title: 'New Location',
-            message: 'No database found in selected folder.',
-            detail: 'Do you want to copy your current data there?'
+            buttons: options.buttons || ['Copy current data', 'Start fresh', 'Cancel'],
+            title: options.dialogNewLoc || 'New Location',
+            message: options.dialogNoDbFound || 'No database found in selected folder.',
+            detail: options.dialogCopyAsk || 'Do you want to copy your current data there?'
         });
 
         if (choice === 2) return { success: false, canceled: true }; // Cancel
@@ -190,14 +218,14 @@ ipcMain.handle('change-data-path', async () => {
 });
 
 // Start of export-backup (hook for context)
-ipcMain.handle('export-backup', async () => {
+ipcMain.handle('export-backup', async (event, options = {}) => {
     try {
         const win = BrowserWindow.getFocusedWindow();
         const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '_');
         const defaultName = `epoxy_backup_${dateStr}.zip`;
 
         const { canceled, filePath } = await dialog.showSaveDialog(win, {
-            title: 'Export Backup',
+            title: options.title || 'Export Backup',
             defaultPath: path.join(app.getPath('documents'), defaultName),
             filters: [{ name: 'Zip Files', extensions: ['zip'] }]
         });
@@ -223,11 +251,11 @@ ipcMain.handle('export-backup', async () => {
     }
 });
 
-ipcMain.handle('import-backup', async () => {
+ipcMain.handle('import-backup', async (event, options = {}) => {
     try {
         const win = BrowserWindow.getFocusedWindow();
         const { canceled, filePaths } = await dialog.showOpenDialog(win, {
-            title: 'Import Backup',
+            title: options.title || 'Import Backup',
             filters: [{ name: 'Zip Files', extensions: ['zip'] }],
             properties: ['openFile']
         });

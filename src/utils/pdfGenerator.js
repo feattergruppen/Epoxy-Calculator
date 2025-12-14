@@ -4,12 +4,18 @@ import { translations } from './translations';
 // Note: We'll import a font or just use standard fonts. For simplicity and reliability in electron with widely varying languages, we'll try standard fonts first.
 // If special characters like 'æøå' or Cyrillic break, we might need a custom font, but jsPDF has improved utf8 support.
 
-export const generateInvoice = (entry, settings) => {
+export const generateInvoice = (entryOrEntries, settings, invoiceNumber = null) => {
     try {
         const doc = new jsPDF();
         const lang = settings.language || 'da';
         const t = (key) => translations[lang][key] || key;
         const currency = settings.currency || 'kr';
+
+        // Determine if merged
+        const isMerged = Array.isArray(entryOrEntries);
+        const entries = isMerged ? entryOrEntries : [entryOrEntries];
+        // Use first entry date or today for merged
+        const invoiceDate = isMerged ? new Date().toLocaleDateString() : entries[0].date;
 
         // 1. Header & Logo
         let topOffset = 20;
@@ -34,11 +40,14 @@ export const generateInvoice = (entry, settings) => {
         doc.text(title, settings.companyLogo ? 45 : 14, 25); // Offset text if logo exists
 
         doc.setFontSize(16);
-        doc.text(t('pdfTitle'), 14, settings.companyLogo ? 45 : 35);
+        const titleText = invoiceNumber ? `${t('pdfTitle')} #${invoiceNumber}` : t('pdfTitle');
+        doc.text(titleText, 14, settings.companyLogo ? 45 : 35);
 
         doc.setFontSize(10);
-        doc.text(`${t('histTableDate')}: ${entry.date}`, 14, settings.companyLogo ? 55 : 45);
-        doc.text(`${t('histTableProject')}: ${entry.projectName}`, 14, settings.companyLogo ? 60 : 50);
+        doc.text(`${t('histTableDate')}: ${invoiceDate}`, 14, settings.companyLogo ? 55 : 45);
+        if (!isMerged) {
+            doc.text(`${t('histTableProject')}: ${entries[0].projectName}`, 14, settings.companyLogo ? 60 : 50);
+        }
 
         // 2. Data for Table
         // We want to show a breakdown that justifies the price.
@@ -46,97 +55,114 @@ export const generateInvoice = (entry, settings) => {
         // However, often you just want to sell the product.
         // Let's make a detailed view for the user.
 
-        const tableHead = [[t('pdfDesc'), t('pdfQty'), t('pdfPrice'), t('pdfTotal')]];
+        // Helper to generate rows for a single entry
+        const generateEntryRows = (entry) => {
+            return [
+                // Epoxy 1:1
+                entry.amount1to1 > 0 ? [
+                    t('amount1to1'),
+                    `${entry.amount1to1} g`,
+                    `${settings.price1to1} /kg`,
+                    `${((entry.amount1to1 / 1000) * settings.price1to1).toFixed(2)}`
+                ] : null,
 
-        const tableBody = [
-            // Epoxy 1:1
-            entry.amount1to1 > 0 ? [
-                t('amount1to1'),
-                `${entry.amount1to1} g`,
-                `${settings.price1to1} /kg`,
-                `${((entry.amount1to1 / 1000) * settings.price1to1).toFixed(2)}`
-            ] : null,
+                // Epoxy 2:1
+                entry.amount2to1 > 0 ? [
+                    t('amount2to1'),
+                    `${entry.amount2to1} g`,
+                    `${settings.price2to1} /kg`,
+                    `${((entry.amount2to1 / 1000) * settings.price2to1).toFixed(2)}`
+                ] : null,
 
-            // Epoxy 2:1
-            entry.amount2to1 > 0 ? [
-                t('amount2to1'),
-                `${entry.amount2to1} g`,
-                `${settings.price2to1} /kg`,
-                `${((entry.amount2to1 / 1000) * settings.price2to1).toFixed(2)}`
-            ] : null,
-
-            // Custom Materials
-            ...(entry.customMaterials && Array.isArray(entry.customMaterials) ? entry.customMaterials.map(mat => (
-                mat.name && mat.cost ? [
-                    mat.name,
-                    '1',
-                    mat.cost,
-                    parseFloat(mat.cost).toFixed(2)
-                ] : null
-            )).filter(Boolean) : []),
-
-            // Labor
-            entry.includeLabor && entry.time > 0 ? [
-                t('resLabor'),
-                `${(entry.time / 60).toFixed(2)} t`,
-                `${settings.hourlyRate} /t`,
-                `${((entry.time / 60) * settings.hourlyRate).toFixed(2)}`
-            ] : null,
-
-            // Extras
-            entry.extrasCost > 0 ? [
-                t('extras'),
-                '1',
-                entry.extrasCost,
-                entry.extrasCost?.toFixed(2)
-            ] : null,
-
-            // Packaging
-            entry.packagingCost > 0 ? [
-                t('packaging'),
-                '1',
-                entry.packagingCost,
-                entry.packagingCost?.toFixed(2)
-            ] : null,
-
-            // 2b. Machine Surcharge Aggregation (Buffer + Vacuum + Mold)
-            (() => {
-                let surchargeTotal = 0;
-
-                // Buffer Calculation
-                if (entry.includeBuffer) {
-                    const price1 = parseFloat(settings.price1to1) || 0;
-                    const price2 = parseFloat(settings.price2to1) || 0;
-                    const cost1 = (parseFloat(entry.amount1to1 || 0) / 1000) * price1;
-                    const cost2 = (parseFloat(entry.amount2to1 || 0) / 1000) * price2;
-                    const baseMat = cost1 + cost2;
-                    const bufferPct = parseFloat(settings.buffer || 0);
-                    surchargeTotal += baseMat * (bufferPct / 100);
-                }
-
-                // Vacuum
-                if (entry.useVacuum) {
-                    surchargeTotal += parseFloat(settings.vacuumCost || 0);
-                }
-
-                // Mold Wear
-                if (entry.includeMoldWear) {
-                    surchargeTotal += parseFloat(settings.moldWear || 0);
-                }
-
-                if (surchargeTotal > 0) {
-                    return [
-                        t('pdfMachineSurcharge'),
+                // Custom Materials
+                ...(entry.customMaterials && Array.isArray(entry.customMaterials) ? entry.customMaterials.map(mat => (
+                    mat.name ? [
+                        mat.name,
                         '1',
-                        surchargeTotal.toFixed(2),
-                        surchargeTotal.toFixed(2)
-                    ];
-                }
-                return null;
-            })(),
+                        mat.cost || '0.00',
+                        parseFloat(mat.cost || 0).toFixed(2)
+                    ] : null
+                )).filter(Boolean) : []),
 
-            // Buffer categories are skipped for clarity, focused on "billable items"
-        ].filter(Boolean);
+                // Labor
+                entry.includeLabor && entry.time > 0 ? [
+                    t('resLabor'),
+                    `${(entry.time / 60).toFixed(2)} t`,
+                    `${settings.hourlyRate} /t`,
+                    `${((entry.time / 60) * settings.hourlyRate).toFixed(2)}`
+                ] : null,
+
+                // Extras
+                entry.extrasCost > 0 ? [
+                    t('extras'),
+                    '1',
+                    entry.extrasCost,
+                    entry.extrasCost?.toFixed(2)
+                ] : null,
+
+                // Packaging
+                entry.packagingCost > 0 ? [
+                    t('packaging'),
+                    '1',
+                    entry.packagingCost,
+                    entry.packagingCost?.toFixed(2)
+                ] : null,
+
+                // Machine Surcharge
+                (() => {
+                    let surchargeTotal = 0;
+                    if (entry.includeBuffer) {
+                        const price1 = parseFloat(settings.price1to1) || 0;
+                        const price2 = parseFloat(settings.price2to1) || 0;
+                        const cost1 = (parseFloat(entry.amount1to1 || 0) / 1000) * price1;
+                        const cost2 = (parseFloat(entry.amount2to1 || 0) / 1000) * price2;
+                        const baseMat = cost1 + cost2;
+                        const bufferPct = parseFloat(settings.buffer || 0);
+                        surchargeTotal += baseMat * (bufferPct / 100);
+                    }
+                    if (entry.useVacuum) surchargeTotal += parseFloat(settings.vacuumCost || 0);
+                    if (entry.includeMoldWear) surchargeTotal += parseFloat(settings.moldWear || 0);
+
+                    if (surchargeTotal > 0) {
+                        return [
+                            t('pdfMachineSurcharge'),
+                            '1',
+                            surchargeTotal.toFixed(2),
+                            surchargeTotal.toFixed(2)
+                        ];
+                    }
+                    return null;
+                })()
+            ].filter(Boolean);
+        };
+
+        const tableHead = [[t('pdfDesc'), t('pdfQty'), t('pdfPrice'), t('pdfTotal')]];
+        let tableBody = [];
+
+        if (isMerged) {
+            // Detailed Merged Body
+            entries.forEach((entry, index) => {
+                // Header Row for Project
+                tableBody.push([{
+                    content: `${entry.projectName} (${entry.date})`,
+                    colSpan: 4,
+                    styles: { fontStyle: 'bold', fillColor: [240, 240, 240] }
+                }]);
+
+                // Detailed rows for this project
+                const rows = generateEntryRows(entry);
+                tableBody.push(...rows);
+
+                // Optional Subtotal for project could go here, but maybe overkill if we just want itemization
+                // Let's add an empty spacer row if it's not the last item
+                // if (index < entries.length - 1) {
+                //    tableBody.push([{ content: '', colSpan: 4, styles: { minCellHeight: 5 } }]);
+                // }
+            });
+        } else {
+            // Detailed Single Entry Body
+            tableBody = generateEntryRows(entries[0]);
+        }
 
         // 3. Generate Table
         autoTable(doc, {
@@ -150,21 +176,27 @@ export const generateInvoice = (entry, settings) => {
         // 4. Totals
         let finalY = doc.lastAutoTable.finalY + 10;
 
-        doc.setFontSize(12);
-        doc.text(`${t('resCost')}: ${entry.results.total.toFixed(2)} ${currency}`, 14, finalY);
+        const totalSales = entries.reduce((sum, e) => sum + e.results.sales, 0);
+        // Only show cost for single entry (privacy?) or if requested - let's stick to Sales Price for invoices
+        // const totalCost = entries.reduce((sum, e) => sum + e.results.total, 0);
 
-        finalY += 10;
+        // doc.setFontSize(12);
+        // doc.text(`${t('resCost')}: ${totalCost.toFixed(2)} ${currency}`, 14, finalY);
+
+        // finalY += 10;
+
         doc.setFontSize(16);
         doc.setTextColor(0, 150, 0); // Green
-        doc.text(`${t('resSales')}: ${entry.results.sales.toFixed(2)} ${currency}`, 14, finalY);
+        doc.text(`${t('resSales')}: ${totalSales.toFixed(2)} ${currency}`, 14, finalY);
 
         // Footer
         doc.setFontSize(8);
         doc.setTextColor(150);
-        doc.text("Generated by EpoxyCalc v1.0", 14, 280);
+        doc.text(`Generated by EpoxyCalc v${import.meta.env.PACKAGE_VERSION}`, 14, 280);
 
-        // 5. Append Project Image if exists
-        if (entry.projectImage) {
+        // 5. Append Project Image if exists (Only for single entry)
+        if (!isMerged && entries[0].projectImage) {
+            const entry = entries[0]; // Define entry for this block
             doc.addPage();
             doc.setFontSize(16);
             doc.setTextColor(0, 0, 0);
@@ -192,7 +224,9 @@ export const generateInvoice = (entry, settings) => {
         }
 
         // Save via Electron Dialog
-        const filename = `${entry.projectName.replace(/\s+/g, '_')}_invoice.pdf`;
+        const filename = isMerged
+            ? `Invoice_${invoiceNumber || 'merged'}.pdf`
+            : `${entries[0].projectName.replace(/\s+/g, '_')}_invoice.pdf`;
 
         // Efficient Base64 conversion using jsPDF built-in
         const dataUriString = doc.output('datauristring');
