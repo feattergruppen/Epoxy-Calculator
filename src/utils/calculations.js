@@ -31,9 +31,13 @@ export const calculateCost = (inputs, settings) => {
     }
 
     // 2. Drift & Maskiner (Operations)
-    let ops = parseNum(settings.consumables);
-    if (inputs.includeMoldWear) ops += parseNum(settings.moldWear);
-    if (inputs.useVacuum) ops += parseNum(settings.vacuumCost);
+    // 2. Drift & Maskiner (Operations)
+    let ops = 0;
+    if (inputs.useDrift) {
+        ops += parseNum(settings.consumables);
+        if (inputs.includeMoldWear) ops += parseNum(settings.moldWear);
+        if (inputs.useVacuum) ops += parseNum(settings.vacuumCost);
+    }
 
     // 3. Arbejdsløn
     // HVIS includeLabor er sand: Løn = (Minutter/60) * Timesats
@@ -41,6 +45,13 @@ export const calculateCost = (inputs, settings) => {
     const labor = inputs.includeLabor
         ? (minutes / 60) * parseNum(settings.hourlyRate)
         : 0;
+
+    // Add Multiple Castings Cost to Operations
+    if (inputs.useMultiCast) {
+        const castCount = parseNum(inputs.multiCastCount);
+        const castCost = parseNum(settings.multiCastCost);
+        ops += castCount * castCost;
+    }
 
     // 4. Total Kostpris (Minimumspris)
     // Total = Materiale + Ops + Løn + Ekstra + Emballage

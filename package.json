@@ -1,7 +1,7 @@
 {
   "name": "epoxy-calculator",
   "private": true,
-  "version": "1.4.3",
+  "version": "1.4.19",
   "main": "electron/main.js",
   "description": "Epoxy Resin Calculator",
   "author": "Epoxy Calc User",
@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
+    "electron-updater": "6.6.2",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.300.0",
@@ -36,9 +37,18 @@
     "vite": "^5.0.8",
     "wait-on": "^7.2.0"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/feattergruppen/Epoxy-Calculator.git"
+  },
   "build": {
     "appId": "com.epoxy.calculator",
     "productName": "Epoxy Calculator",
+    "publish": {
+      "provider": "github",
+      "owner": "feattergruppen",
+      "repo": "Epoxy-Calculator"
+    },
     "files": [
       "dist/**/*",
       "electron/**/*",

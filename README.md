@@ -1,5 +1,5 @@
 # ⚗️ Epoxy Calculator
-![Version](https://img.shields.io/badge/version-1.4.3-blue.svg)
+![Version](https://img.shields.io/badge/version-1.4.19-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 A desktop application for calculating epoxy casting costs, managing materials, and tracking project history. Built with Electron and React.
@@ -19,6 +19,8 @@ A desktop application for calculating epoxy casting costs, managing materials, a
 - **🔒 Privacy & Control**: Data is stored in files you own. No external cloud servers or subscriptions required.
 - **💾 Backup & Restore**: Export/Import your full database including images, Customer Directory, Material Management, Color Library, Settings, and much more.
 - **☁️ Shared Database**: Configurable storage path for syncing data across computers via shared folders.
+- **👥 Customer Directory**: Dedicated directory in Settings to manage customer details.
+- **🖥️ Full Screen Support**: Optimized layout for large monitors with responsive grids.
 
 ## 📥 Installation
 
@@ -64,11 +66,13 @@ The output file will be located in the `dist-electron/` directory.
 - **Lucide React**: Icons
 - **✨ Vibe-code**: Coded with Vibe-code
 
-## 🆕 Latest Updates (v1.4.3)
+## 🆕 Latest Updates (v1.4.19)
 
-- **Customer Directory**: New "Customer Directory" in Settings to manage customers.
-- **Full Screen Support**: App now utilizes full width on large monitors with up to 8-column grids.
-- **Refined UI**: Improved sorting, autocomplete, and styling throughout.
+- **📝 Material & Project Notes**: Add optional notes to specific materials or the entire project. Toggable for invoice visibility.
+- **🧾 Invoice Price Breakdown**: Detailed invoice footer showing Subtotal, Discount/Rounding, and Total.
+- **📊 History Sorting**: Sort your calculation history by Date, Price, or Name (Asc/Desc).
+- **⏱️ Timestamps**: Exact time of calculation is now saved and displayed on invoices.
+- **🐛 Bug Fixes**: Improved Drift calculation logic and fixed PDF header alignment.
 
 
 ## 📄 License

@@ -8,16 +8,59 @@ const History = ({ entries, onDelete, onUpdate, t, settings, setSettings, onEdit
     const [showInvoiceModal, setShowInvoiceModal] = useState(false);
     const [invoiceNumInput, setInvoiceNumInput] = useState('');
     const [customerDetails, setCustomerDetails] = useState({ name: '', address: '', zipCity: '', ref: '' });
+    const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
+
+    // Sorting Logic
+    const parseDate = (dateStr) => {
+        if (!dateStr) return new Date(0);
+        // Expects DD.MM.YYYY
+        const parts = dateStr.split('.');
+        if (parts.length === 3) {
+            return new Date(parts[2], parts[1] - 1, parts[0]);
+        }
+        return new Date(0);
+    };
+
+    const sortedEntries = [...entries].sort((a, b) => {
+        let valA, valB;
+
+        switch (sortConfig.key) {
+            case 'price':
+                valA = a.results?.sales || 0;
+                valB = b.results?.sales || 0;
+                break;
+            case 'name':
+                valA = (a.projectName || '').toLowerCase();
+                valB = (b.projectName || '').toLowerCase();
+                break;
+            case 'date':
+            default:
+                valA = parseDate(a.date).getTime();
+                valB = parseDate(b.date).getTime();
+                break;
+        }
+
+        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    const handleSortChange = (key) => {
+        setSortConfig(prev => ({
+            key,
+            direction: prev.key === key && prev.direction === 'desc' ? 'asc' : 'desc'
+        }));
+    };
 
     const toggleSelect = (id) => {
         setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
     };
 
     const toggleSelectAll = () => {
-        if (selectedIds.length === entries.length) {
+        if (selectedIds.length === sortedEntries.length) {
             setSelectedIds([]);
         } else {
-            setSelectedIds(entries.map(e => e.id));
+            setSelectedIds(sortedEntries.map(e => e.id));
         }
     };
 
@@ -134,9 +177,30 @@ const History = ({ entries, onDelete, onUpdate, t, settings, setSettings, onEdit
                 ))}
             </div>
 
+            {/* SORTING CONTROLS */}
+            {entries.length > 0 && (
+                <div className="flex flex-wrap gap-2 items-center bg-skin-card p-3 rounded-lg border border-skin-border">
+                    <span className="text-sm font-medium text-skin-muted mr-2">Sort By:</span>
+                    {['date', 'price', 'name'].map(key => (
+                        <button
+                            key={key}
+                            onClick={() => handleSortChange(key)}
+                            className={`px-3 py-1.5 rounded text-sm font-medium flex items-center gap-1 transition-colors ${sortConfig.key === key ? 'bg-primary text-white' : 'bg-skin-base text-skin-base-text hover:bg-skin-border'}`}
+                        >
+                            {key === 'date' && t('sortDate')}
+                            {key === 'price' && t('sortPrice')}
+                            {key === 'name' && t('sortName')}
+                            {sortConfig.key === key && (
+                                sortConfig.direction === 'asc' ? <TrendingUp size={14} className="rotate-180" /> : <TrendingUp size={14} />
+                            )}
+                        </button>
+                    ))}
+                </div>
+            )}
+
             {/* HISTORY LIST */}
             {
-                entries.length === 0 ? (
+                sortedEntries.length === 0 ? (
                     <div className="bg-skin-card p-8 rounded-lg shadow-sm text-center border border-skin-border">
                         <HistoryIcon size={48} className="mx-auto text-skin-muted mb-4" />
                         <h3 className="text-lg font-medium text-skin-base-text mb-1">{t('histNoHistory')}</h3>
@@ -144,7 +208,7 @@ const History = ({ entries, onDelete, onUpdate, t, settings, setSettings, onEdit
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4">
-                        {entries.map((entry) => {
+                        {sortedEntries.map((entry) => {
                             const isSelected = selectedIds.includes(entry.id);
                             const cardClass = `bg-skin-card rounded-lg shadow-sm border border-skin-border overflow-hidden transition-all hover:shadow-md ${isSelected ? 'ring-2 ring-primary border-primary' : ''}`;
                             return (
@@ -163,7 +227,7 @@ const History = ({ entries, onDelete, onUpdate, t, settings, setSettings, onEdit
                                                         {entry.projectName || t('histTableProject')}
                                                     </h3>
                                                     <p className="text-xs text-skin-muted flex items-center gap-1 mt-1">
-                                                        <Clock size={12} /> {entry.date}
+                                                        <Clock size={12} /> {entry.date} {entry.timestamp && <span className="text-skin-muted/70">- {entry.timestamp}</span>}
                                                     </p>
                                                 </div>
                                             </div>

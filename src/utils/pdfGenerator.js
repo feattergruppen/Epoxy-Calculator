@@ -88,12 +88,11 @@ export const generateInvoice = (entryOrEntries, settings, invoiceNumber = null, 
         alignRight(invTitle, yPos);
 
         yPos += 5;
+        // Date
         doc.setFontSize(10);
-        doc.setTextColor(80);
-        alignRight(`${t('histTableDate')}: ${invoiceDate}`, yPos);
-
-
-        // 2. Left Side: Customer Info (Bill To)
+        doc.setTextColor(100);
+        const timeStr = entries[0].timestamp ? ` kl. ${entries[0].timestamp}` : '';
+        doc.text(`${t('lblDate')}: ${entries[0].date}${timeStr}`, rightX, yPos, { align: 'right' });     // 2. Left Side: Customer Info (Bill To)
         // Starts at top now, since Logo moved away
         let leftY = 20;
 
@@ -158,9 +157,9 @@ export const generateInvoice = (entryOrEntries, settings, invoiceNumber = null, 
                 // Custom Materials
                 ...(entry.customMaterials && Array.isArray(entry.customMaterials) ? entry.customMaterials.map(mat => (
                     mat.name ? [
-                        mat.name,
-                        '1',
-                        mat.cost || '0.00',
+                        mat.note && mat.showOnInvoice ? `${mat.name}\n(Note: ${mat.note})` : mat.name,
+                        String(mat.quantity || 1),
+                        mat.unitPrice > 0 ? parseFloat(mat.unitPrice).toFixed(2) : (mat.cost || '0.00'),
                         parseFloat(mat.cost || 0).toFixed(2)
                     ] : null
                 )).filter(Boolean) : []),
@@ -260,18 +259,52 @@ export const generateInvoice = (entryOrEntries, settings, invoiceNumber = null, 
         // 4. Totals
         let finalY = doc.lastAutoTable.finalY + 10;
 
-        const totalSales = entries.reduce((sum, e) => sum + e.results.sales, 0);
-        // Only show cost for single entry (privacy?) or if requested - let's stick to Sales Price for invoices
-        // const totalCost = entries.reduce((sum, e) => sum + e.results.total, 0);
+        // Logic for Breakdown
+        // subtotal = Sales Price - Rounding
+        // discount = Rounding
+        // total = Sales Price
 
-        // doc.setFontSize(12);
-        // doc.text(`${t('resCost')}: ${totalCost.toFixed(2)} ${currency}`, 14, finalY);
+        // Calculate totals from entries (usually single entry for invoice)
+        // If merged, we sum them up.
+        const totalSales = entries.reduce((sum, e) => sum + (e.results.sales || 0), 0);
+        const totalRounding = entries.reduce((sum, e) => sum + (e.results.rounding || 0), 0);
+        const subtotal = totalSales - totalRounding;
 
-        // finalY += 10;
+        // Render Breakdown
+        doc.setFontSize(10);
+        doc.setTextColor(80);
 
+        // Subtotal
+        alignRight(`${t('pdfSubtotal')}: ${subtotal.toFixed(2)} ${currency}`, finalY);
+        finalY += 5;
+
+        // Discount / Rounding
+        alignRight(`${t('pdfDiscount')}: ${totalRounding.toFixed(2)} ${currency}`, finalY);
+        finalY += 7;
+
+        // Final Total
         doc.setFontSize(16);
         doc.setTextColor(0, 150, 0); // Green
-        doc.text(`${t('resSales')}: ${totalSales.toFixed(2)} ${currency}`, 14, finalY);
+        alignRight(`${t('pdfTotal')}: ${totalSales.toFixed(2)} ${currency}`, finalY);
+
+        // Project Note
+        if (entries[0].projectNote && entries[0].showProjectNoteOnInvoice) {
+            finalY += 15;
+            doc.setFontSize(11);
+            doc.setTextColor(0);
+            doc.text(`${t('lblNotes')}:`, 14, finalY);
+
+            finalY += 6;
+            doc.setFontSize(10);
+            doc.setTextColor(80);
+
+            // Split text to fit width
+            const noteLines = doc.splitTextToSize(entries[0].projectNote, 180);
+            doc.text(noteLines, 14, finalY);
+
+            // Update finalY for next element if needed
+            finalY += (noteLines.length * 5);
+        }
 
         // Footer
         doc.setFontSize(8);

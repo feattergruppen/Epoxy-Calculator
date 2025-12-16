@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Calculator as CalcIcon, Save, DollarSign, Trash2, Image as ImageIcon, X } from 'lucide-react';
+import { Calculator as CalcIcon, Save, DollarSign, Trash2, Image as ImageIcon, X, Plus } from 'lucide-react';
 import { calculateCost } from '../utils/calculations';
 
 const Calculator = ({ settings, onSave, t, inputs, setInputs, isEditing, onCancel, colors = [], materials = [] }) => {
@@ -29,7 +29,7 @@ const Calculator = ({ settings, onSave, t, inputs, setInputs, isEditing, onCance
     const addMaterial = () => {
         setInputs(prev => ({
             ...prev,
-            customMaterials: [...prev.customMaterials, { id: Date.now(), name: '', cost: '' }]
+            customMaterials: [...prev.customMaterials, { id: Date.now(), name: '', cost: 0, quantity: 1, unitPrice: 0, type: 'material', isSystemItem: false, note: '', showOnInvoice: false, isNoteOpen: false }]
         }));
     };
 
@@ -40,12 +40,14 @@ const Calculator = ({ settings, onSave, t, inputs, setInputs, isEditing, onCance
         }));
     };
 
-    const updateMaterial = (id, field, val) => {
+    const updateMaterial = (id, field, value) => {
         setInputs(prev => ({
             ...prev,
-            customMaterials: prev.customMaterials.map(m =>
-                m.id === id ? { ...m, [field]: val } : m
-            )
+            customMaterials: prev.customMaterials.map(m => {
+                if (m.id !== id) return m;
+                if (field === 'all') return { ...m, ...value }; // Handle bulk update
+                return { ...m, [field]: value };
+            })
         }));
     };
 
@@ -64,6 +66,18 @@ const Calculator = ({ settings, onSave, t, inputs, setInputs, isEditing, onCance
         setInputs(prev => ({ ...prev, projectImage: null }));
     };
 
+    const handleDriftChange = (e) => {
+        const isChecked = e.target.checked;
+        setInputs(prev => ({
+            ...prev,
+            useDrift: isChecked,
+            useVacuum: isChecked,
+            includeBuffer: isChecked,
+            includeMoldWear: isChecked,
+            includeLabor: isChecked
+        }));
+    };
+
     const handleSave = () => {
         if (!inputs.projectName) {
             alert(t('alertNoName'));
@@ -74,6 +88,7 @@ const Calculator = ({ settings, onSave, t, inputs, setInputs, isEditing, onCance
         const entry = {
             id: Date.now(),
             date: new Date().toLocaleDateString('da-DK'),
+            timestamp: new Date().toLocaleTimeString('da-DK', { hour: '2-digit', minute: '2-digit' }),
             projectName: inputs.projectName,
             ...inputs,
             amount1to1: parseFloat(inputs.amount1to1) || 0,
@@ -93,7 +108,7 @@ const Calculator = ({ settings, onSave, t, inputs, setInputs, isEditing, onCance
     const cur = settings.currency || 'kr';
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 max-w-[1920px] mx-auto">
 
             {/* INPUTS */}
             <div className="space-y-6 bg-skin-card p-6 rounded-xl shadow-sm border border-skin-border">
@@ -201,24 +216,56 @@ const Calculator = ({ settings, onSave, t, inputs, setInputs, isEditing, onCance
                         </div>
                     </div>
 
-                    <div className="border-t border-skin-border pt-4 grid grid-cols-2 gap-4">
-                        <label className="flex items-center space-x-2 text-sm text-skin-base-text cursor-pointer hover:bg-skin-base p-2 rounded">
-                            <input type="checkbox" name="useVacuum" checked={inputs.useVacuum} onChange={handleChange} className="rounded text-primary focus:ring-primary" />
-                            <span>{t('useVacuum')}</span>
-                        </label>
-                        <label className="flex items-center space-x-2 text-sm text-skin-base-text cursor-pointer hover:bg-skin-base p-2 rounded">
-                            <input type="checkbox" name="includeLabor" checked={inputs.includeLabor} onChange={handleChange} className="rounded text-primary focus:ring-primary" />
-                            <span>{t('includeLabor')}</span>
-                        </label>
-                        <label className="flex items-center space-x-2 text-sm text-skin-base-text cursor-pointer hover:bg-skin-base p-2 rounded">
-                            <input type="checkbox" name="includeBuffer" checked={inputs.includeBuffer} onChange={handleChange} className="rounded text-primary focus:ring-primary" />
-                            <span>{t('includeBuffer')} ({settings.buffer}%)?</span>
-                        </label>
-                        <label className="flex items-center space-x-2 text-sm text-skin-base-text cursor-pointer hover:bg-skin-base p-2 rounded">
-                            <input type="checkbox" name="includeMoldWear" checked={inputs.includeMoldWear} onChange={handleChange} className="rounded text-primary focus:ring-primary" />
-                            <span>{t('includeMoldWear')}</span>
-                        </label>
-                        <label className="flex items-center space-x-2 text-sm text-skin-base-text cursor-pointer hover:bg-skin-base p-2 rounded col-span-2">
+                    <div className="border-t border-skin-border pt-4 space-y-3">
+                        {/* Multiple Castings */}
+                        <div className="flex items-center justify-between bg-skin-base/50 p-2 rounded-lg">
+                            <label className="flex items-center space-x-2 text-sm text-skin-base-text cursor-pointer flex-1">
+                                <input type="checkbox" name="useMultiCast" checked={inputs.useMultiCast} onChange={handleChange} className="rounded text-primary focus:ring-primary" />
+                                <span>{t('useMultiCast')}</span>
+                            </label>
+                            {inputs.useMultiCast && (
+                                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+                                    <span className="text-sm text-skin-muted">{t('multiCastCount')}:</span>
+                                    <input
+                                        type="number"
+                                        name="multiCastCount"
+                                        value={inputs.multiCastCount}
+                                        onChange={handleChange}
+                                        className="w-16 rounded border-skin-border border p-1 bg-skin-input text-skin-base-text text-sm text-center"
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Drift Master */}
+                        <div className="border-t border-skin-border pt-2">
+                            <label className="flex items-center space-x-2 text-sm font-bold text-skin-base-text cursor-pointer hover:bg-skin-base p-2 rounded">
+                                <input type="checkbox" name="useDrift" checked={inputs.useDrift} onChange={handleDriftChange} className="rounded text-primary focus:ring-primary" />
+                                <span>{t('useDrift')}</span>
+                            </label>
+
+                            {/* Sub options */}
+                            <div className={`grid grid-cols-2 gap-2 pl-6 mt-1 transition-all duration-300 ${inputs.useDrift ? 'opacity-100' : 'opacity-50 pointer-events-none'}`}>
+                                <label className="flex items-center space-x-2 text-sm text-skin-base-text cursor-pointer hover:bg-skin-base p-2 rounded">
+                                    <input type="checkbox" name="useVacuum" checked={inputs.useVacuum} onChange={handleChange} className="rounded text-primary focus:ring-primary" />
+                                    <span>{t('lblUseVacuum')}</span>
+                                </label>
+                                <label className="flex items-center space-x-2 text-sm text-skin-base-text cursor-pointer hover:bg-skin-base p-2 rounded">
+                                    <input type="checkbox" name="includeLabor" checked={inputs.includeLabor} onChange={handleChange} className="rounded text-primary focus:ring-primary" />
+                                    <span>{t('lblIncludeLabor')}</span>
+                                </label>
+                                <label className="flex items-center space-x-2 text-sm text-skin-base-text cursor-pointer hover:bg-skin-base p-2 rounded">
+                                    <input type="checkbox" name="includeBuffer" checked={inputs.includeBuffer} onChange={handleChange} className="rounded text-primary focus:ring-primary" />
+                                    <span>{t('lblIncludeBuffer')}</span>
+                                </label>
+                                <label className="flex items-center space-x-2 text-sm text-skin-base-text cursor-pointer hover:bg-skin-base p-2 rounded">
+                                    <input type="checkbox" name="includeMoldWear" checked={inputs.includeMoldWear} onChange={handleChange} className="rounded text-primary focus:ring-primary" />
+                                    <span>{t('lblIncludeMoldWear')}</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <label className="flex items-center space-x-2 text-sm text-skin-base-text cursor-pointer hover:bg-skin-base p-2 rounded pt-2 border-t border-skin-border">
                             <input type="checkbox" name="includeProfit" checked={inputs.includeProfit} onChange={handleChange} className="rounded text-primary focus:ring-primary" />
                             <span>{t('includeProfit')}</span>
                         </label>
@@ -236,6 +283,37 @@ const Calculator = ({ settings, onSave, t, inputs, setInputs, isEditing, onCance
                             placeholder="-10% / -50 / 100"
                             className="mt-1 w-full rounded-md border-skin-border border p-2 focus:ring-primary focus:border-primary font-mono bg-skin-input text-skin-base-text"
                         />
+                    </div>
+
+                    {/* PROJECT NOTE */}
+                    <div className="pt-2">
+                        <button
+                            onClick={() => setInputs(prev => ({ ...prev, isProjectNoteOpen: !prev.isProjectNoteOpen }))}
+                            className="text-sm text-primary hover:text-primary-hover font-medium flex items-center gap-1"
+                        >
+                            <Plus size={16} /> {t('lblProjectNote')}
+                        </button>
+
+                        {inputs.isProjectNoteOpen && (
+                            <div className="mt-2 p-3 bg-skin-base rounded-md border border-skin-border animate-in fade-in slide-in-from-top-2">
+                                <textarea
+                                    value={inputs.projectNote || ''}
+                                    onChange={(e) => setInputs(prev => ({ ...prev, projectNote: e.target.value }))}
+                                    className="w-full text-sm rounded border-skin-border border p-2 bg-skin-input text-skin-base-text mb-2 shadow-sm focus:border-primary focus:ring-1 focus:ring-primary"
+                                    placeholder={t('phNote')}
+                                    rows={3}
+                                />
+                                <label className="flex items-center space-x-2 text-sm text-skin-muted cursor-pointer hover:text-skin-base-text">
+                                    <input
+                                        type="checkbox"
+                                        checked={inputs.showProjectNoteOnInvoice || false}
+                                        onChange={(e) => setInputs(prev => ({ ...prev, showProjectNoteOnInvoice: e.target.checked }))}
+                                        className="rounded text-primary focus:ring-primary"
+                                    />
+                                    <span>{t('lblShowOnInvoice')}</span>
+                                </label>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -305,67 +383,109 @@ const Calculator = ({ settings, onSave, t, inputs, setInputs, isEditing, onCance
 
 export default Calculator;
 
-const MaterialItem = ({ material, updateMaterial, removeMaterial, t, currency, colors = [], materials = [] }) => {
+const MaterialItem = ({ material, updateMaterial, removeMaterial, t, currency, suggestions = [] }) => {
     const [showSuggestions, setShowSuggestions] = useState(false);
     const wrapperRef = useRef(null);
 
-    // Combine colors and materials for suggestions
-    const allSuggestions = [
-        ...materials.map(m => ({ ...m, type: 'material' })),
-        ...colors.map(c => ({ ...c, type: 'color' }))
-    ];
-
     // Filter suggestions based on input
-    const filteredSuggestions = material.name ? allSuggestions.filter(s =>
-        s.name.toLowerCase().includes(material.name.toLowerCase())
-    ) : [];
+    const filteredSuggestions = material.name
+        ? suggestions.filter(s => s.name.toLowerCase().includes(material.name.toLowerCase()))
+        : suggestions; // Show all if empty
 
-    // Handle selection
     const handleSelect = (item) => {
-        let displayName = item.name;
-        if (item.category) {
-            displayName = item.type === 'color' ? `${item.category} - ${item.name}` : `${item.category} - ${item.name}`;
-            // Simplify: just use category - name if available
-        }
-        updateMaterial(material.id, 'name', displayName);
+        // When selecting an item, we lock the unit price if it's a system item (has an ID from settings)
+        // For simplicity, we assume any suggestion selected is a "system item" and set its price.
+        // If user wants to override, they can't unless we add an override toggle.
+        // User req: "Price per unit shouldn't change if it's already in the system".
 
-        if (item.cost) {
-            updateMaterial(material.id, 'cost', item.cost.toString());
-        }
+        updateMaterial(material.id, 'all', {
+            name: item.name,
+            type: item.type || 'material',
+            category: item.category || '',
+            unitPrice: item.cost || 0, // Set unit price from item
+            quantity: 1, // Default to 1
+            cost: (item.cost || 0) * 1, // Calculate total
+            isSystemItem: true // Flag to lock price
+        });
         setShowSuggestions(false);
     };
 
-    const handleInputChange = (e) => {
-        updateMaterial(material.id, 'name', e.target.value);
-        setShowSuggestions(true);
+    const handleQtyChange = (val) => {
+        const qty = parseFloat(val) || 0;
+        const total = qty * (material.unitPrice || 0);
+        updateMaterial(material.id, 'all', {
+            quantity: qty,
+            cost: total
+        });
     };
 
-    // Handle clicks outside to close suggestions
+    const handlePriceChange = (val) => {
+        const price = parseFloat(val) || 0;
+        const total = (material.quantity || 0) * price;
+        updateMaterial(material.id, 'all', {
+            unitPrice: price,
+            cost: total
+        });
+    };
+
+    // Close suggestions on click outside
     useEffect(() => {
         const handleClickOutside = (event) => {
             if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
                 setShowSuggestions(false);
             }
         };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // Helper to format currency
+    const fmt = (num) => parseFloat(num || 0).toFixed(2);
+
     return (
-        <div className="flex gap-4 items-start mb-3 bg-skin-base p-3 rounded-lg border border-skin-border relative group">
-            <div className="flex-1 relative" ref={wrapperRef}>
+        <div className="flex flex-col md:flex-row gap-4 items-start mb-3 bg-skin-base p-3 rounded-lg border border-skin-border relative group">
+            {/* NAME INPUT */}
+            <div className="flex-1 relative w-full" ref={wrapperRef}>
                 <label className="block text-sm font-medium text-skin-muted mb-1">{t('matName')}</label>
                 <input
                     type="text"
                     value={material.name}
-                    onChange={handleInputChange}
+                    onChange={(e) => updateMaterial(material.id, 'name', e.target.value)}
                     onFocus={() => setShowSuggestions(true)}
                     className="w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary p-2 bg-skin-input text-skin-base-text"
                     placeholder={t('phMatName')}
                     autoComplete="off"
                 />
+
+                {/* Note Toggle */}
+                <button
+                    onClick={() => updateMaterial(material.id, 'isNoteOpen', !material.isNoteOpen)}
+                    className="text-xs text-primary hover:text-primary-hover underline mt-1 flex items-center gap-1"
+                >
+                    <Plus size={12} /> {t('btnNote')}
+                </button>
+
+                {/* Note Section */}
+                {material.isNoteOpen && (
+                    <div className="mt-2 p-2 bg-skin-accent rounded-md border border-skin-border animate-in fade-in slide-in-from-top-1">
+                        <textarea
+                            value={material.note || ''}
+                            onChange={(e) => updateMaterial(material.id, 'note', e.target.value)}
+                            className="w-full text-sm rounded border-skin-border border p-1 bg-skin-input text-skin-base-text mb-2"
+                            placeholder={t('phNote')}
+                            rows={2}
+                        />
+                        <label className="flex items-center space-x-2 text-xs text-skin-muted cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={material.showOnInvoice || false}
+                                onChange={(e) => updateMaterial(material.id, 'showOnInvoice', e.target.checked)}
+                                className="rounded text-primary focus:ring-primary"
+                            />
+                            <span>{t('lblShowOnInvoice')}</span>
+                        </label>
+                    </div>
+                )}
 
                 {showSuggestions && filteredSuggestions.length > 0 && (
                     <div className="absolute z-50 w-full bg-skin-card mt-1 rounded-md shadow-lg border border-skin-border max-h-60 overflow-auto">
@@ -382,6 +502,9 @@ const MaterialItem = ({ material, updateMaterial, removeMaterial, t, currency, c
                                             {item.type === 'material' ? `Mat / ${item.category}` : `${t('tabColors')} / ${item.category}`}
                                         </span>
                                     )}
+                                    <span className="text-xs font-mono text-skin-muted">
+                                        {item.cost > 0 ? `${item.cost} ${currency}` : ''}
+                                    </span>
                                     {item.type === 'color' && (
                                         <span className="w-3 h-3 rounded-full bg-gradient-to-tr from-pink-500 to-primary"></span>
                                     )}
@@ -391,26 +514,47 @@ const MaterialItem = ({ material, updateMaterial, removeMaterial, t, currency, c
                     </div>
                 )}
             </div>
-            {/* Cost Input */}
-            <div>
-                <label className="block text-sm font-medium text-skin-muted mb-1">{t('matCost')} ({currency})</label>
+
+            {/* QUANTITY */}
+            <div className="w-full md:w-24">
+                <label className="block text-sm font-medium text-skin-muted mb-1">{t('matQuantity')}</label>
                 <input
-                    type="text"
-                    inputMode="decimal"
-                    value={material.cost}
-                    onChange={(e) => updateMaterial(material.id, 'cost', e.target.value)}
-                    className="w-24 rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary p-2 bg-skin-input text-skin-base-text"
+                    type="number"
+                    value={material.quantity || ''}
+                    onChange={(e) => handleQtyChange(e.target.value)}
+                    className="w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary p-2 bg-skin-input text-skin-base-text text-center"
+                    placeholder="1"
+                />
+            </div>
+
+            {/* UNIT PRICE */}
+            <div className="w-full md:w-32">
+                <label className="block text-sm font-medium text-skin-muted mb-1">{t('matUnitPrice')}</label>
+                <input
+                    type="number"
+                    value={material.unitPrice || ''}
+                    onChange={(e) => handlePriceChange(e.target.value)}
+                    disabled={material.isSystemItem} // Lock if system item
+                    className={`w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary p-2 bg-skin-input text-skin-base-text text-right ${material.isSystemItem ? 'bg-skin-base/50 text-skin-muted cursor-not-allowed' : ''}`}
                     placeholder="0.00"
                 />
             </div>
+
+            {/* TOTAL (Read Only) */}
+            <div className="w-full md:w-32">
+                <label className="block text-sm font-medium text-skin-muted mb-1">{t('matTotal')}</label>
+                <div className="w-full p-2 bg-skin-accent rounded-md text-right font-mono text-skin-base-text border border-skin-border">
+                    {fmt(material.cost)} {currency}
+                </div>
+            </div>
+
             {/* Remove Button */}
-            <div className="flex items-end mt-6">
+            <div className="flex items-end mt-7">
                 <button
                     onClick={() => removeMaterial(material.id)}
                     className="p-2 text-danger hover:bg-danger/10 rounded-md transition-colors"
                     title={t('btnRemove')}
                 >
-                    <Trash2 size={18} />
                 </button>
             </div>
         </div>

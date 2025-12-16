@@ -11,7 +11,7 @@ const Settings = ({
     customers, setCustomers,
     t
 }) => {
-    const [newColor, setNewColor] = useState({ name: '', type: '', image: '', note: '' });
+    const [newColor, setNewColor] = useState({ name: '', type: '', image: '', note: '', cost: '' });
     const [editingColorId, setEditingColorId] = useState(null);
     const [newCategory, setNewCategory] = useState('');
     const [newColorCategory, setNewColorCategory] = useState(''); // Separate state for color categories input
@@ -76,7 +76,7 @@ const Settings = ({
         } else {
             setColors(prev => [...prev, { ...newColor, type: cat, id: uuidv4() }]);
         }
-        setNewColor({ name: '', type: '', image: '', note: '' });
+        setNewColor({ name: '', type: '', image: '', note: '', cost: '' });
     };
 
     const startEditColor = (color) => {
@@ -87,7 +87,7 @@ const Settings = ({
     };
 
     const cancelEditColor = () => {
-        setNewColor({ name: '', type: '', image: '', note: '' });
+        setNewColor({ name: '', type: '', image: '', note: '', cost: '' });
         setEditingColorId(null);
     };
 
@@ -269,7 +269,16 @@ const Settings = ({
                     </button>
                 </div>
 
-                <div className="mt-6 pt-4 border-t border-skin-border">
+            </section>
+
+            {/* STORAGE & SYNC SETTINGS */}
+            <section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <Database className="text-primary" /> {t('setStorageTitle') || 'Lagring og Synkronisering'}
+                </h2>
+
+                {/* Location */}
+                <div className="pt-2">
                     <label className="block text-sm font-medium text-skin-muted mb-2">{t('lblDbLoc')}</label>
                     <div className="flex flex-col md:flex-row gap-3 items-center">
                         <div className="flex-1 bg-skin-base border border-skin-border rounded p-2 text-sm text-skin-muted font-mono w-full truncate">
@@ -301,6 +310,44 @@ const Settings = ({
                         {t('tipShared')}
                     </p>
                 </div>
+
+                {/* Buffered Save Options */}
+                <div className="mt-6 pt-4 border-t border-skin-border">
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                name="enableBufferedSave"
+                                checked={settings.enableBufferedSave || false}
+                                onChange={(e) => setSettings(prev => ({ ...prev, enableBufferedSave: e.target.checked }))}
+                                className="rounded border-skin-border text-primary focus:ring-primary h-4 w-4"
+                            />
+                            <span className="text-sm font-medium text-skin-base-text">{t('enableBufferedSave') || 'Aktiver "Smart Auto-save" (Buffer)'}</span>
+                        </label>
+                    </div>
+                    <p className="text-xs text-skin-muted mb-4">
+                        {t('descBufferedSave') || 'Gemmer lokalt først og synkroniserer til netværksdrevet i baggrunden. Anbefales til delte mapper.'}
+                    </p>
+
+                    {settings.enableBufferedSave && (
+                        <div>
+                            <label className="block text-sm font-medium text-skin-muted mb-1">{t('syncInterval') || 'Synkroniserings-interval (sekunder)'}</label>
+                            <input
+                                type="number"
+                                name="syncInterval"
+                                value={settings.syncInterval || 10}
+                                onChange={handleChange}
+                                min="5"
+                                max="3600"
+                                className="w-24 rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
+                            />
+                        </div>
+                    )}
+                </div>
+
+                {/* Import/Export Buttons moved here or kept above? The original code had Import above. Let's keep existing Import logic but maybe consolidate if needed. For now just keeping the new section clean. */}
+
+
             </section>
 
             {/* COMPANY PROFILE */}
@@ -542,13 +589,23 @@ const Settings = ({
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-skin-muted">{t('setConsumables')} ({currency})</label>
+                        <label className="block text-sm font-medium text-skin-muted mb-1">{t('setConsumables')} ({settings.currency})</label>
                         <input
                             type="number"
                             name="consumables"
                             value={settings.consumables}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary sm:text-sm p-2 border bg-skin-input text-skin-base-text"
+                            className="w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary p-2 bg-skin-input text-skin-base-text"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-skin-muted mb-1">{t('setMultiCast')} ({settings.currency})</label>
+                        <input
+                            type="number"
+                            name="multiCastCost"
+                            value={settings.multiCastCost}
+                            onChange={handleChange}
+                            className="w-full rounded-md border-skin-border shadow-sm focus:border-primary focus:ring-primary p-2 bg-skin-input text-skin-base-text"
                         />
                     </div>
                 </div>
@@ -650,7 +707,7 @@ const Settings = ({
                                 <div className="text-xs text-skin-muted space-y-1">
                                     {cust.address && <p>{cust.address}</p>}
                                     {cust.zipCity && <p>{cust.zipCity}</p>}
-                                    {cust.email && <p className="truncate">@{cust.email}</p>}
+                                    {cust.email && <p className="truncate">@: {cust.email}</p>}
                                     {cust.phone && <p>📞 {cust.phone}</p>}
                                     {cust.cvr && <p>CVR: {cust.cvr}</p>}
                                 </div>
@@ -707,37 +764,13 @@ const Settings = ({
                             <button onClick={cancelEditColor} className="text-sm text-skin-muted hover:text-skin-base-text">Annuller</button>
                         </div>
                     )}
-                    <div className="flex gap-4 items-end flex-col md:flex-row">
-                        <div className="flex-1 w-full">
-                            <label className="block text-xs font-medium text-skin-muted mb-1">{t('setColorName')}</label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label className="block text-sm font-medium text-skin-muted mb-1">{t('lblColorName')}</label>
                             <input
                                 type="text"
                                 value={newColor.name}
                                 onChange={(e) => setNewColor({ ...newColor, name: e.target.value })}
-                                className="w-full rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
-                                placeholder="F.eks. Deep Blue"
-                            />
-                        </div>
-                        <div className="w-full md:w-40">
-                            <label className="block text-xs font-medium text-skin-muted mb-1">{t('setColorType')}</label>
-                            <select
-                                value={newColor.type}
-                                onChange={(e) => setNewColor({ ...newColor, type: e.target.value })}
-                                className="w-full rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
-                            >
-                                <option value="" disabled>{t('lblSelect')}</option>
-                                {colorCategories.map(cat => (
-                                    <option key={cat} value={cat}>{cat}</option>
-                                ))}
-                            </select>
-                        </div>
-                        <div className="w-24">
-                            <label className="block text-xs font-medium text-skin-muted mb-1">{t('matCost')}</label>
-                            <input
-                                type="number"
-                                value={newColor.cost || ''}
-                                onChange={(e) => setNewColor({ ...newColor, cost: e.target.value })}
-                                className="w-full rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
                                 placeholder="0.00"
                             />
                         </div>

@@ -7,5 +7,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     importBackup: (options) => ipcRenderer.invoke('import-backup', options),
     getDataPath: () => ipcRenderer.invoke('get-data-path'),
     changeDataPath: (options) => ipcRenderer.invoke('change-data-path', options),
+    saveLocalBuffer: (data) => ipcRenderer.invoke('save-local-buffer', data),
+    syncData: (data) => ipcRenderer.invoke('sync-data', data),
     savePdf: (bg, filename) => ipcRenderer.invoke('save-pdf', { dataBase64: bg, filename })
 });

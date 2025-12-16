@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, shell } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -80,6 +81,127 @@ function createWindow() {
     }
 }
 
+// Auto Updater Events
+autoUpdater.autoDownload = false; // We ask user first
+
+autoUpdater.on('error', (error) => {
+    dialog.showErrorBox('Update Error', error == null ? "unknown" : (error.stack || error).toString());
+});
+
+autoUpdater.on('update-available', (info) => {
+    const choice = dialog.showMessageBoxSync({
+        type: 'info',
+        title: 'Update Available',
+        message: `Version ${info.version} is available.`,
+        detail: 'Do you want to download it now?',
+        buttons: ['Download', 'Cancel']
+    });
+    if (choice === 0) {
+        autoUpdater.downloadUpdate();
+    }
+});
+
+autoUpdater.on('update-not-available', (info) => {
+    // Only show if manually requested? Or just log? 
+    // Usually only show dialog if user clicked "Check for Updates", 
+    // but here global listeners catch it. We might need flagged checks.
+    // For now, let's silence this global listener and handle manual check differently or just show dialog always.
+    // Better: show dialog only on manual trigger. But listeners are global.
+    // Simple approach: Logic in menu item.
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+    const choice = dialog.showMessageBoxSync({
+        type: 'question',
+        title: 'Ready to Install',
+        message: 'Update downloaded. Application will restart to install.',
+        buttons: ['Restart Now', 'Later']
+    });
+    if (choice === 0) {
+        autoUpdater.quitAndInstall();
+    }
+});
+
+function createAppMenu() {
+    const template = [
+        {
+            label: 'File',
+            submenu: [
+                { role: 'quit' }
+            ]
+        },
+        {
+            label: 'View',
+            submenu: [
+                { role: 'reload' },
+                { role: 'forceReload' },
+                { role: 'toggleDevTools' },
+                { type: 'separator' },
+                { role: 'resetZoom' },
+                { role: 'zoomIn' },
+                { role: 'zoomOut' },
+                { type: 'separator' },
+                { role: 'togglefullscreen' }
+            ]
+        },
+        {
+            label: 'Help',
+            submenu: [
+                {
+                    label: 'Check for Updates',
+                    click: () => {
+                        autoUpdater.checkForUpdatesAndNotify();
+                        // Note: checkForUpdatesAndNotify only shows notification.
+                        // We want explicit dialog.
+                        // Let's use checkForUpdates() and let listeners handle it.
+                        // To show "No update available", we might need a flag or custom logic.
+                        // For MVP: Just run check. If nothing happens, user knows its up to date? 
+                        // No, bad UX.
+                        // Let's make a manual check function.
+                        manualCheck();
+                    }
+                },
+                {
+                    label: 'About',
+                    click: async () => {
+                        const { response } = await dialog.showMessageBox({
+                            type: 'info',
+                            title: 'About Epoxy Calculator',
+                            message: `Epoxy Calculator v${app.getVersion()}`,
+                            detail: 'Created by FeatterGruppen.\n\nOpen Source Project.',
+                            buttons: ['Visit Website', 'OK']
+                        });
+                        if (response === 0) {
+                            shell.openExternal('https://github.com/feattergruppen/Epoxy-Calculator');
+                        }
+                    }
+                }
+            ]
+        }
+    ];
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
+}
+
+let manualCheckTriggered = false;
+function manualCheck() {
+    manualCheckTriggered = true;
+    autoUpdater.checkForUpdates();
+}
+
+// Add listener for 'update-not-available' specifically for manual checks
+autoUpdater.on('update-not-available', (info) => {
+    if (manualCheckTriggered) {
+        dialog.showMessageBox({
+            type: 'info',
+            title: 'No Updates',
+            message: 'You are using the latest version.',
+            buttons: ['OK']
+        });
+        manualCheckTriggered = false;
+    }
+});
+
 // IPC Handlers
 ipcMain.handle('get-data', async () => {
     try {
@@ -96,6 +218,77 @@ ipcMain.handle('get-data', async () => {
     }
 });
 
+// Smart Auto-Save Handlers
+const TEMP_FILE_NAME = 'epoxy_temp_buffer.json';
+const TEMP_PATH = path.join(app.getPath('userData'), TEMP_FILE_NAME);
+
+ipcMain.handle('save-local-buffer', async (event, data) => {
+    try {
+        fs.writeFileSync(TEMP_PATH, JSON.stringify(data, null, 2));
+        return { success: true };
+    } catch (error) {
+        console.error('Error saving local buffer:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('sync-data', async (event, localData) => {
+    try {
+        // 1. Read Main DB to get latest state
+        let mainData = DEFAULT_DATA;
+        if (fs.existsSync(DATA_PATH)) {
+            mainData = JSON.parse(fs.readFileSync(DATA_PATH, 'utf-8'));
+        }
+
+        // 2. Differential Merge Logic
+        // Strategy: "Smart Merge" - Add new items, update modified items.
+        // For simplicity & safety: We will assume localData is the "source os truth" for the current user's session.
+        // HOWEVER, to respect other users, we should preserve items that are in Main but NOT in Local?
+        // NO, that might re-introduce deleted items. Use Last-Write-Wins for now.
+        // Improvements: Check 'lastModified' timestamps if we had them.
+        // Current Plan: Overwrite specific keys if changed?
+        // Safest approach for "Shared Drive" without a real DB is tricky.
+        // Let's implement a robust "Union" for Arrays (Entries, Colors, Materials, Customers).
+
+        // Helper to merge arrays by ID
+        const mergeArrays = (mainArr, localArr) => {
+            const merged = [...mainArr];
+            localArr.forEach(localItem => {
+                const index = merged.findIndex(m => m.id === localItem.id);
+                if (index >= 0) {
+                    // Update existing
+                    merged[index] = localItem;
+                } else {
+                    // Add new
+                    merged.push(localItem);
+                }
+            });
+            return merged;
+        };
+
+        const mergedData = {
+            ...mainData,
+            ...localData, // Settings overwrite
+            entries: mergeArrays(mainData.entries || [], localData.entries || []),
+            colors: mergeArrays(mainData.colors || [], localData.colors || []),
+            materials: mergeArrays(mainData.materials || [], localData.materials || []),
+            customers: mergeArrays(mainData.customers || [], localData.customers || []),
+            // Categories are sets of strings, simple overwrite or union? Union is safer.
+            materialCategories: [...new Set([...(mainData.materialCategories || []), ...(localData.materialCategories || [])])],
+            colorCategories: [...new Set([...(mainData.colorCategories || []), ...(localData.colorCategories || [])])],
+        };
+
+        // 3. Write to Main DB
+        fs.writeFileSync(DATA_PATH, JSON.stringify(mergedData, null, 2));
+
+        return { success: true, syncedPath: DATA_PATH };
+    } catch (error) {
+        console.error('Sync error:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+// Original Save Handler (kept for backward compatibility or direct saves)
 ipcMain.handle('save-data', async (event, data) => {
     try {
         fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2));
@@ -298,6 +491,7 @@ ipcMain.handle('import-backup', async (event, options = {}) => {
 
 app.whenReady().then(() => {
     createWindow();
+    createAppMenu();
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {

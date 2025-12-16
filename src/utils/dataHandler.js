@@ -19,5 +19,19 @@ export const dataHandler = {
             console.warn("Electron API not found (Browser Mode?)");
             return { success: false, error: "No API" };
         }
+    },
+
+    saveLocalBuffer: async (data) => {
+        if (window.electronAPI && window.electronAPI.saveLocalBuffer) {
+            return await window.electronAPI.saveLocalBuffer(data);
+        }
+        return { success: false };
+    },
+
+    syncData: async (data) => {
+        if (window.electronAPI && window.electronAPI.syncData) {
+            return await window.electronAPI.syncData(data);
+        }
+        return { success: false };
     }
 };

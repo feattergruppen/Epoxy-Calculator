@@ -29,6 +29,7 @@ function App() {
     const [settings, setSettings] = useState({
         price1to1: 125.0, price2to1: 125.0, hourlyRate: 150.0, buffer: 15.0,
         moldWear: 10.0, vacuumCost: 5.0, consumables: 5.0,
+        multiCastCost: 0.0, // New setting
         language: getSystemLanguage(),
         currency: 'kr',
         invoiceYear: new Date().getFullYear(),
@@ -46,10 +47,16 @@ function App() {
         projectName: '',
         amount1to1: 0,
         amount2to1: 0,
+        useMultiCast: false, // New input
+        multiCastCount: 0,   // New input
         customMaterials: [],
+        projectNote: '',
+        showProjectNoteOnInvoice: false,
+        isProjectNoteOpen: false,
         time: 0,
         extrasCost: 0,
         packagingCost: 0,
+        useDrift: true,      // New input check
         useVacuum: true,
         includeLabor: true,
         includeProfit: true,
@@ -60,6 +67,8 @@ function App() {
         rounding: ''
     });
     const [editingId, setEditingId] = useState(null);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [lastSyncTime, setLastSyncTime] = useState(Date.now());
 
     // Load data on mount
     useEffect(() => {
@@ -97,12 +106,43 @@ function App() {
     }, [settings.theme]);
 
     // Auto-save on changes
+    // Auto-save on changes (Smart Logic)
     useEffect(() => {
         if (!loading) {
             const dataToSave = { settings, entries, colors, materials, customers, materialCategories, colorCategories };
-            dataHandler.saveData(dataToSave);
+
+            if (settings.enableBufferedSave) {
+                // Buffer Mode: Save to local temp file only
+                dataHandler.saveLocalBuffer(dataToSave).catch(err => console.error("Buffer save failed", err));
+            } else {
+                // Direct Mode: Save directly to Main DB (blocking/standard)
+                dataHandler.saveData(dataToSave);
+            }
         }
     }, [settings, entries, colors, materials, customers, materialCategories, colorCategories, loading]);
+
+    // Sync Loop (only active if Buffered Save is enabled)
+    useEffect(() => {
+        if (!settings.enableBufferedSave || loading) return;
+
+        const intervalSec = Math.max(5, parseInt(settings.syncInterval || 10)); // Min 5 sec
+
+        const syncId = setInterval(async () => {
+            setIsSyncing(true);
+            try {
+                const dataToSync = { settings, entries, colors, materials, customers, materialCategories, colorCategories };
+                await dataHandler.syncData(dataToSync);
+                setLastSyncTime(Date.now());
+            } catch (err) {
+                console.error("Sync failed", err);
+            } finally {
+                // Keep "Syncing" shown for at least 500ms so user sees it
+                setTimeout(() => setIsSyncing(false), 800);
+            }
+        }, intervalSec * 1000);
+
+        return () => clearInterval(syncId);
+    }, [settings.enableBufferedSave, settings.syncInterval, loading, settings, entries, colors, materials, customers, materialCategories, colorCategories]);
 
     // Translation Helper
     const t = (key) => {
@@ -131,6 +171,7 @@ function App() {
                 time: 0,
                 extrasCost: 0,
                 packagingCost: 0,
+                useDrift: true,
                 useVacuum: true,
                 includeLabor: true,
                 includeProfit: true,
@@ -168,10 +209,16 @@ function App() {
             projectName: entry.projectName,
             amount1to1: entry.amount1to1 || 0,
             amount2to1: entry.amount2to1 || 0,
+            useMultiCast: entry.useMultiCast || false,
+            multiCastCount: entry.multiCastCount || 0,
             customMaterials: entry.customMaterials || [],
+            projectNote: entry.projectNote || '',
+            showProjectNoteOnInvoice: entry.showProjectNoteOnInvoice || false,
+            isProjectNoteOpen: !!entry.projectNote, // Auto-open if there is a note
             time: entry.time || 0,
             extrasCost: entry.extrasCost || 0,
             packagingCost: entry.packagingCost || 0,
+            useDrift: entry.useDrift !== undefined ? entry.useDrift : true,
             useVacuum: entry.useVacuum !== undefined ? entry.useVacuum : true,
             includeLabor: entry.includeLabor !== undefined ? entry.includeLabor : true,
             includeProfit: entry.includeProfit !== undefined ? entry.includeProfit : true,
@@ -191,10 +238,13 @@ function App() {
             projectName: '',
             amount1to1: 0,
             amount2to1: 0,
+            useMultiCast: false,
+            multiCastCount: 0,
             customMaterials: [],
             time: 0,
             extrasCost: 0,
             packagingCost: 0,
+            useDrift: true,
             useVacuum: true,
             includeLabor: true,
             includeProfit: true,
@@ -270,7 +320,7 @@ function App() {
 
             <main className="w-full max-w-[1920px] mx-auto p-4 md:py-8">
                 {activeTab === 'calculator' && (
-                    <div className="max-w-4xl mx-auto">
+                    <div className="w-full">
                         <Calculator
                             settings={settings}
                             onSave={handleSaveEntry}
@@ -319,6 +369,13 @@ function App() {
                     />
                 )}
             </main>
+            {/* SYNC INDICATOR */}
+            {isSyncing && (
+                <div className="fixed bottom-4 right-4 bg-skin-card border border-primary text-primary px-4 py-2 rounded-full shadow-lg flex items-center gap-2 text-sm font-medium z-50 animate-bounce-slight opacity-90">
+                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                    Syncing...
+                </div>
+            )}
         </div>
     );
 }
