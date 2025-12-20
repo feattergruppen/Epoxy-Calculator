@@ -1,5 +1,5 @@
 # ⚗️ Epoxy Calculator
-![Version](https://img.shields.io/badge/version-1.4.19-blue.svg)
+![Version](https://img.shields.io/badge/version-1.4.81-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 A desktop application for calculating epoxy casting costs, managing materials, and tracking project history. Built with Electron and React.
@@ -10,9 +10,9 @@ A desktop application for calculating epoxy casting costs, managing materials, a
 - **📜 Project History**: Save calculations, merge invoices, and view summarized project stats.
 - **📄 PDF Export**: Generate professional PDF invoices (single or merged) with auto-numbering.
 - **👥 Customer Directory**: Manage customer details and easily add them to invoices.
-- **🧪 Material Management**: Manage custom materials, densities, and categories.
-- **🎨 Color Library**: Save and organize your color pigments with pricing.
-- **⚙️ Settings**: Customize hourly rates, currency, themes, company info. And much more.
+- **🧪 Material Management**: Full customization of Materials and **Material Categories**. Organize specific resins, molds, and items.
+- **🎨 Color Library**: Save and organize your color pigments with pricing. Supports **Custom Color Categories** (e.g., Micas, Pastes, Inks).
+- **⚙️ Settings**: Customize hourly rates, currency, themes, company info, and global defaults.
 - **🎨 Themes**: Choose from Light, Dark, Ocean, and Sunset themes.
 - **🧾Invoice Merging**: Select multiple projects to create a single merged invoice.
 - **🧾Invoice Numbering**: Automatic year-based numbering (YYYY-NNN).
@@ -66,15 +66,21 @@ The output file will be located in the `dist-electron/` directory.
 - **Lucide React**: Icons
 - **✨ Vibe-code**: Coded with Vibe-code
 
-## 🆕 Latest Updates (v1.4.19)
+## 🆕 Latest Updates (v1.4.81)
 
-- **📝 Material & Project Notes**: Add optional notes to specific materials or the entire project. Toggable for invoice visibility.
-- **🧾 Invoice Price Breakdown**: Detailed invoice footer showing Subtotal, Discount/Rounding, and Total.
-- **📊 History Sorting**: Sort your calculation history by Date, Price, or Name (Asc/Desc).
-- **⏱️ Timestamps**: Exact time of calculation is now saved and displayed on invoices.
+- **� Network Stability**: Complete overhaul of the saving engine. Now robust against Windows Network Drive errors.
+- **📂 Categories**: You can now create/rename/delete custom categories for both Materials and Colors.
+- **🛡️ Close Protection**: "Close Confirmation" dialog ensures you never accidentally close without saving.
+- **⚡ Performance**: Optimized rendering and saving for smoother experience with large databases.
+- **🧹 Auto-Cleanup**: Smart detection of database path issues on startup.
+- **� Fixes**: Fixed PDF Header alignment, duplicate entries, and "Data Corruption" false alarms.
 - **🐛 Bug Fixes**: Improved Drift calculation logic and fixed PDF header alignment.
-
-
+- **🛑 Force Sync**: Added "Force Sync" button to ensure data is saved to the database file.
+- **⚡ Force Sync**: New "Force Sync" button in Settings to manually push data to the network drive immediately.
+- **🛡️ Data Integrity**: Enhanced protection against network drive failures (0-byte files) with atomic write locking and robust backup restoration.
+- **🌍 Translations**: Improved multilingual support for new features (DA, EN, DE, NO, SV, PL).
+- **🎨 UI Polish**: Better styling for sync controls and consistent theming.
+- **🐛 Fixes**: Resolves issues with "stale data" after updates and prevents save conflicts.
 ## 📄 License
 
 This project is open source.
@@ -83,14 +89,14 @@ This project is open source.
 
 > [!TIP]
 > **Too tech-savvy?**
-> Or if you don't bother with all the codeing, here's an setup.exe file: [Download Release](https://github.com/feattergruppen/Epoxy-Calculator/releases/tag/Epoxy-Calculator-v.1.3.3)
+> Or if you don't bother with all the codeing, here's an setup.exe file: [Download Release](https://github.com/feattergruppen/Epoxy-Calculator/releases/tag/Epoxy-Calculator-v.1.4.81)
 
 ## � To-Do
 
-- [⚠️] **Smart Auto-save**: Implement local buffering system (saves to temp file first) for optimized network drive usage.
-- [⚠️] **Conditional Logic**: Option to enable/disable "Buffered Save" (intended for non-local locations).
-- [⚠️] **Sync Settings**: Configurable timer for how often to sync to the main database.
-- [⚠️] **UI Feedback**: Add "Loading" / "Syncing" indicator when updating the database.
-- [⚠️] **Differential Updates**: Ensure only new/changed data is synced to minimize invalid file writes.
-- [⚠️] **Update Checker**: Implement a mechanism to check for updates (e.g., via GitHub Releases) and notify the user.
-- [⚠️] **Improments to the Help section**: Add more information about the application and its features.
+- [✅] **Smart Auto-save**: Implemented local buffering system.
+- [✅] **Network Stability**: Added Retry, Copy-Fallback, and Emergency Rescue.
+- [✅] **Sync Settings**: Added configurable sync interval.
+- [✅] **UI Feedback**: Added "Saving..." indicators and Error Dialogs.
+- [✅] **Differential Updates**: Implemented safe merging of data.
+- [✅] **Custom Categories**: Added full management for Material/Color categories.
+- [ ] **Update Checker**: Automated GitHub Release checking (In Progress).

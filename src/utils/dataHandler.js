@@ -33,5 +33,19 @@ export const dataHandler = {
             return await window.electronAPI.syncData(data);
         }
         return { success: false };
+    },
+
+    saveSession: async (data) => {
+        if (window.electronAPI && window.electronAPI.saveSession) {
+            return await window.electronAPI.saveSession(data);
+        }
+        return { success: false };
+    },
+
+    getSession: async () => {
+        if (window.electronAPI && window.electronAPI.getSession) {
+            return await window.electronAPI.getSession();
+        }
+        return null;
     }
 };

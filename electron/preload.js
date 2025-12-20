@@ -9,5 +9,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     changeDataPath: (options) => ipcRenderer.invoke('change-data-path', options),
     saveLocalBuffer: (data) => ipcRenderer.invoke('save-local-buffer', data),
     syncData: (data) => ipcRenderer.invoke('sync-data', data),
-    savePdf: (bg, filename) => ipcRenderer.invoke('save-pdf', { dataBase64: bg, filename })
+    savePdf: (bg, filename) => ipcRenderer.invoke('save-pdf', { dataBase64: bg, filename }),
+    saveSession: (data) => ipcRenderer.invoke('save-session', data),
+    getSession: () => ipcRenderer.invoke('get-session'),
+    onCloseIntent: (callback) => ipcRenderer.on('app-close-intent', callback),
+    confirmClose: () => ipcRenderer.send('app-close-confirmed')
 });

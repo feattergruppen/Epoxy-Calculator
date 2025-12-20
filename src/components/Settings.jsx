@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Image as ImageIcon, Layers, X, Pencil, Check, ChevronDown, ChevronRight, Download, Upload, Database, Folder, FileText, Users } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
+import {
+    Save, Plus, Trash2, Download, Upload, Copy, FolderInput,
+    HelpCircle, Globe, Palette, Layers, DollarSign, Clock, Beaker,
+    FileText, User, Users, MapPin, Phone, Mail, Globe as GlobeIcon, ImageIcon, // Added Users
+    Check, X, Pencil, Shield, Zap, ChevronDown, ChevronRight, ChevronUp, ArrowRight, Database, Folder // Added Folder
+} from 'lucide-react';
+
+
 
 const Settings = ({
     settings, setSettings,
@@ -9,6 +15,7 @@ const Settings = ({
     materialCategories, setMaterialCategories,
     colorCategories, setColorCategories,
     customers, setCustomers,
+    entries, inputs, // Added for full backup
     t
 }) => {
     const [newColor, setNewColor] = useState({ name: '', type: '', image: '', note: '', cost: '' });
@@ -74,7 +81,7 @@ const Settings = ({
             setColors(prev => prev.map(c => c.id === editingColorId ? { ...newColor, type: cat, id: editingColorId } : c));
             setEditingColorId(null);
         } else {
-            setColors(prev => [...prev, { ...newColor, type: cat, id: uuidv4() }]);
+            setColors(prev => [...prev, { ...newColor, type: cat, id: crypto.randomUUID() }]);
         }
         setNewColor({ name: '', type: '', image: '', note: '', cost: '' });
     };
@@ -98,30 +105,174 @@ const Settings = ({
         }
     };
 
+    // --- CATEGORY MANAGEMENT HELPERS ---
+
+    // 1. RENAME CATEGORY
+    const handleRenameCategory = (type, oldName, newName) => {
+        if (!newName || oldName === newName) return;
+
+        // Prevent duplicate names
+        const existing = type === 'color' ? colorCategories : materialCategories;
+        if (existing.includes(newName)) {
+            alert(t('catExists') || "Category already exists");
+            return;
+        }
+
+        if (type === 'color') {
+            const newCats = colorCategories.map(c => c === oldName ? newName : c);
+            setColorCategories(newCats);
+            // Cascasde: Update items
+            setColors(prev => prev.map(c => c.type === oldName ? { ...c, type: newName } : c));
+            forceSave({ colorCategories: newCats, colors: colors.map(c => c.type === oldName ? { ...c, type: newName } : c) });
+        } else {
+            const newCats = materialCategories.map(c => c === oldName ? newName : c);
+            setMaterialCategories(newCats);
+            // Cascasde: Update items
+            setMaterials(prev => prev.map(m => m.category === oldName ? { ...m, category: newName } : m));
+            forceSave({ materialCategories: newCats, materials: materials.map(m => m.category === oldName ? { ...m, category: newName } : m) });
+        }
+    };
+
+    // 2. REORDER CATEGORY
+    const handleReorderCategory = (type, index, direction) => {
+        const list = type === 'color' ? [...colorCategories] : [...materialCategories];
+        const newIndex = direction === 'up' ? index - 1 : index + 1;
+
+        if (newIndex < 0 || newIndex >= list.length) return;
+
+        // Swap
+        [list[index], list[newIndex]] = [list[newIndex], list[index]];
+
+        if (type === 'color') {
+            setColorCategories(list);
+            forceSave({ colorCategories: list });
+        } else {
+            setMaterialCategories(list);
+            forceSave({ materialCategories: list });
+        }
+    };
+
+    // 3. MIGRATE CATEGORY (Cross-Library)
+    const handleMigrateCategory = (catName, fromType) => {
+        const toType = fromType === 'color' ? 'material' : 'color';
+        const msg = `Move category "${catName}" to ${toType === 'color' ? 'Color' : 'Material'} Library? Items will be converted.`;
+        if (!confirm(msg)) return;
+
+        // 1. Update Category Arrays
+        if (fromType === 'color') {
+            // Remove from Colors, Add to Materials
+            const newColorCats = colorCategories.filter(c => c !== catName);
+            const newMatCats = [...materialCategories, catName]; // Check duplicates?
+            if (materialCategories.includes(catName)) {
+                // Merge scenario: Just remove from source, items merge into existing dest
+            }
+
+            setColorCategories(newColorCats);
+            setMaterialCategories(prev => prev.includes(catName) ? prev : [...prev, catName]);
+
+            // 2. Migrate Items
+            const itemsToMigrate = colors.filter(c => c.type === catName);
+            const remainingColors = colors.filter(c => c.type !== catName);
+            const newMaterials = itemsToMigrate.map(c => ({
+                id: c.id,
+                name: c.name,
+                cost: c.cost,
+                category: catName, // Map type -> category
+                images: c.image ? [c.image] : [], // Map single image -> array
+                note: c.note
+            }));
+
+            setColors(remainingColors);
+            setMaterials(prev => [...prev, ...newMaterials]);
+
+            forceSave({
+                colorCategories: newColorCats,
+                materialCategories: materialCategories.includes(catName) ? materialCategories : [...materialCategories, catName],
+                colors: remainingColors,
+                materials: [...materials, ...newMaterials]
+            });
+
+        } else {
+            // Remove from Materials, Add to Colors
+            const newMatCats = materialCategories.filter(c => c !== catName);
+            const newColorCats = [...colorCategories, catName];
+
+            setMaterialCategories(newMatCats);
+            setColorCategories(prev => prev.includes(catName) ? prev : [...prev, catName]);
+
+            // 2. Migrate Items
+            const itemsToMigrate = materials.filter(m => m.category === catName);
+            const remainingMaterials = materials.filter(m => m.category !== catName);
+            const newColors = itemsToMigrate.map(m => ({
+                id: m.id,
+                name: m.name,
+                cost: m.cost,
+                type: catName, // Map category -> type
+                image: (m.images && m.images[0]) || m.image || null, // Map array -> single
+                note: m.note
+            }));
+
+            setMaterials(remainingMaterials);
+            setColors(prev => [...prev, ...newColors]);
+
+            forceSave({
+                materialCategories: newMatCats,
+                colorCategories: colorCategories.includes(catName) ? colorCategories : [...colorCategories, catName],
+                materials: remainingMaterials,
+                colors: [...colors, ...newColors]
+            });
+        }
+    };
+
+    // Helper for Force Save (consolidated)
+    const forceSave = (partialData) => {
+        if (window.electronAPI) {
+            const dataToSave = {
+                settings,
+                // entries: entries || [], // OPTIMIZATION: Main process merges. Don't send heavy entries.
+                colors: colors || [],
+                materials: materials || [],
+                customers: customers || [],
+                materialCategories: materialCategories || [],
+                colorCategories: colorCategories || [],
+                ...partialData // Overwrite with updates
+            };
+            window.electronAPI.saveData(dataToSave).catch(err => console.error("Force save failed:", err));
+        }
+    };
+
     const addColorCategory = () => {
         if (!newColorCategory || colorCategories.includes(newColorCategory)) return;
-        setColorCategories(prev => [...prev, newColorCategory]);
+        const newCats = [...colorCategories, newColorCategory];
+        setColorCategories(newCats);
+        forceSave({ colorCategories: newCats });
         setNewColorCategory('');
     };
 
-    const deleteColorCategory = (cat) => {
+    const deleteColorCategory = async (cat) => {
         const msg = (t('confirmDeleteCat') || "Delete category \"{0}\"?").replace('{0}', cat);
         if (confirm(msg)) {
-            setColorCategories(prev => prev.filter(c => c !== cat));
+            const newCategories = colorCategories.filter(c => c !== cat);
+            setColorCategories(newCategories);
+            forceSave({ colorCategories: newCategories });
         }
     };
 
     // --- MATERIALS LOGIC ---
     const addCategory = () => {
         if (!newCategory || materialCategories.includes(newCategory)) return;
-        setMaterialCategories(prev => [...prev, newCategory]);
+        const newCats = [...materialCategories, newCategory];
+        setMaterialCategories(newCats);
+        forceSave({ materialCategories: newCats });
         setNewCategory('');
     };
 
     const deleteCategory = (cat) => {
         const msg = (t('confirmDeleteMatCat') || "Delete category \"{0}\"?").replace('{0}', cat);
         if (confirm(msg)) {
-            setMaterialCategories(prev => prev.filter(c => c !== cat));
+            const newCats = materialCategories.filter(c => c !== cat);
+            setMaterialCategories(newCats);
+            forceSave({ materialCategories: newCats });
         }
     };
 
@@ -162,7 +313,7 @@ const Settings = ({
             setMaterials(prev => prev.map(m => m.id === editingMaterialId ? { ...matToSave, id: editingMaterialId } : m));
             setEditingMaterialId(null);
         } else {
-            setMaterials(prev => [...prev, { ...matToSave, id: uuidv4() }]);
+            setMaterials(prev => [...prev, { ...matToSave, id: crypto.randomUUID() }]);
         }
 
         setNewMaterial({ name: '', cost: '', category: '', images: [], note: '' });
@@ -201,7 +352,7 @@ const Settings = ({
             setCustomers(prev => prev.map(c => c.id === editingCustId ? { ...newCustomer, id: editingCustId } : c));
             setEditingCustId(null);
         } else {
-            setCustomers(prev => [...prev, { ...newCustomer, id: uuidv4() }]);
+            setCustomers(prev => [...prev, { ...newCustomer, id: crypto.randomUUID() }]);
         }
         setNewCustomer({ name: '', address: '', zipCity: '', cvr: '', phone: '', email: '', ref: '' });
     };
@@ -219,6 +370,32 @@ const Settings = ({
     };
 
 
+
+    // Optimization: Pre-calculate groups to avoid O(N*M) filtering during render
+    const groupedColors = React.useMemo(() => {
+        const groups = {};
+        const catSet = new Set(colorCategories);
+        colorCategories.forEach(c => groups[c] = []);
+        colors.forEach(c => {
+            if (catSet.has(c.type)) {
+                groups[c.type].push(c);
+            }
+        });
+        return { groups };
+    }, [colors, colorCategories]);
+
+    const groupedMaterials = React.useMemo(() => {
+        const groups = {};
+        const catSet = new Set(materialCategories);
+        materialCategories.forEach(c => groups[c] = []);
+        materials.forEach(m => {
+            if (catSet.has(m.category)) {
+                groups[m.category].push(m);
+            }
+        });
+        return { groups };
+    }, [materials, materialCategories]);
+
     const currency = settings.currency || 'kr';
 
     return (
@@ -233,8 +410,22 @@ const Settings = ({
                     <button
                         onClick={async () => {
                             if (!window.electronAPI) return alert(t('msgOnlyApp'));
+
+                            // Construct full data from memory to ensure it's up-to-date (bypassing debounce delay)
+                            const dataToExport = {
+                                settings,
+                                entries: entries || [],
+                                colors: colors || [],
+                                materials: materials || [],
+                                customers: customers || [],
+                                materialCategories: materialCategories || [],
+                                colorCategories: colorCategories || [],
+                                calculatorInputs: inputs || {}
+                            };
+
                             const res = await window.electronAPI.exportBackup({
-                                title: t('btnExportDB')
+                                title: t('btnExportDB'),
+                                data: dataToExport
                             });
                             if (res.success) {
                                 alert(`${t('msgBackupSaved')} ${res.filePath}`);
@@ -331,13 +522,13 @@ const Settings = ({
 
                     {settings.enableBufferedSave && (
                         <div>
-                            <label className="block text-sm font-medium text-skin-muted mb-1">{t('syncInterval') || 'Synkroniserings-interval (sekunder)'}</label>
+                            <label className="block text-sm font-medium text-skin-muted mb-1">{t('syncInterval') || 'Synkroniserings-interval (minutter)'}</label>
                             <input
                                 type="number"
                                 name="syncInterval"
                                 value={settings.syncInterval || 10}
                                 onChange={handleChange}
-                                min="5"
+                                min="1"
                                 max="3600"
                                 className="w-24 rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
                             />
@@ -345,13 +536,47 @@ const Settings = ({
                     )}
                 </div>
 
+                {/* Force Sync Button */}
+                <div className="mt-6 pt-6 border-t border-skin-border">
+                    <button
+                        onClick={async () => {
+                            if (!window.electronAPI) return;
+                            if (!confirm(t('confirmForceSync', "Vil du tvinge en gemning af data til netværksdrevet? Fortsæt?"))) return;
+
+                            try {
+                                const dataToSave = {
+                                    settings,
+                                    colors: colors || [],
+                                    materials: materials || [],
+                                    customers: customers || [],
+                                    materialCategories: materialCategories || [],
+                                    colorCategories: colorCategories || []
+                                };
+                                if (entries) dataToSave.entries = entries;
+
+                                await window.electronAPI.saveData(dataToSave);
+                                alert(t('msgSyncSuccess', "Databasen blev opdateret med succes!"));
+                            } catch (e) {
+                                alert(t('msgSyncError', "Fejl under synkronisering: ") + e.message);
+                            }
+                        }}
+                        className="w-full bg-primary hover:bg-primary-hover text-white py-3 rounded-lg shadow-sm flex items-center justify-center gap-2 transition-all font-semibold active:transform active:scale-95"
+                    >
+                        <Zap size={18} />
+                        {t('btnForceSync', "Tving Synkronisering")}
+                    </button>
+                    <p className="text-xs text-skin-muted mt-2 text-center opacity-75">
+                        {t('descForceSync', "Brug kun dette hvis du mistænker at netværksfilen ikke er opdateret.")}
+                    </p>
+                </div>
+
                 {/* Import/Export Buttons moved here or kept above? The original code had Import above. Let's keep existing Import logic but maybe consolidate if needed. For now just keeping the new section clean. */}
 
 
-            </section>
+            </section >
 
             {/* COMPANY PROFILE */}
-            <section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border">
+            < section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border" >
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                     {t('setProfileTitle')}
                 </h2>
@@ -434,10 +659,10 @@ const Settings = ({
                         </div>
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* Invoice Settings */}
-            <section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border">
+            < section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border" >
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                     <FileText className="text-primary" /> {t('setInvoiceTitle')}
                 </h2>
@@ -467,10 +692,10 @@ const Settings = ({
                         <p className="text-xs text-skin-muted mt-1">{t('tipInvoiceSeq')}</p>
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* General Settings */}
-            <section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border">
+            < section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border" >
                 <h2 className="text-xl font-bold mb-4">{t('setGlobalTitle')}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -527,6 +752,11 @@ const Settings = ({
                         </select>
                     </div>
                 </div>
+            </section >
+
+            {/* Prices Settings */}
+            < section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border" >
+                <h2 className="text-xl font-bold mb-4">{t('setPricesTitle') || "Priser"}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     <div>
                         <label className="block text-sm font-medium text-skin-muted">{t('setPrice1')} ({currency}/kg)</label>
@@ -609,10 +839,10 @@ const Settings = ({
                         />
                     </div>
                 </div>
-            </section>
+            </section >
 
             {/* CUSTOMER DIRECTORY */}
-            <section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border">
+            < section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border" >
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                     <Users className="text-primary" /> {t('setCustTitle')}
                 </h2>
@@ -719,10 +949,10 @@ const Settings = ({
                         </p>
                     )}
                 </div>
-            </section>
+            </section >
 
             {/* COLOR LIBRARY */}
-            <section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border">
+            < section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border" >
                 <h2 className="text-xl font-bold mb-4">{t('setColorTitle')}</h2>
 
                 {/* Color Categories Management */}
@@ -745,12 +975,36 @@ const Settings = ({
                             <Plus size={16} />
                         </button>
                     </form>
-                    <div className="flex flex-wrap gap-2">
-                        {colorCategories.map(cat => (
-                            <span key={cat} className="bg-skin-card text-primary px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-skin-accent flex items-center gap-2">
-                                {cat}
-                                <button type="button" onClick={() => deleteColorCategory(cat)} className="text-primary/50 hover:text-danger"><X size={12} /></button>
-                            </span>
+                    <div className="flex flex-col gap-2">
+                        {colorCategories.map((cat, index) => (
+                            <div key={cat} className="flex items-center justify-between bg-skin-card p-2 rounded border border-skin-border shadow-sm group">
+                                <span className="font-semibold text-sm text-skin-base-text">{cat}</span>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {/* Reorder */}
+                                    <button onClick={() => handleReorderCategory('color', index, 'up')} disabled={index === 0} className="p-1 hover:text-primary disabled:opacity-30"><ChevronUp size={14} /></button>
+                                    <button onClick={() => handleReorderCategory('color', index, 'down')} disabled={index === colorCategories.length - 1} className="p-1 hover:text-primary disabled:opacity-30"><ChevronDown size={14} /></button>
+                                    <div className="w-px h-4 bg-skin-border mx-1"></div>
+                                    {/* Actions */}
+                                    <button
+                                        onClick={() => {
+                                            const newName = prompt("Rename category:", cat);
+                                            if (newName) handleRenameCategory('color', cat, newName);
+                                        }}
+                                        className="p-1 text-skin-muted hover:text-primary"
+                                        title="Rename"
+                                    >
+                                        <Pencil size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleMigrateCategory(cat, 'color')}
+                                        className="p-1 text-skin-muted hover:text-indigo-500"
+                                        title="Move to Material Library"
+                                    >
+                                        <ArrowRight size={14} />
+                                    </button>
+                                    <button onClick={() => deleteColorCategory(cat)} className="p-1 text-danger hover:bg-danger/10 rounded"><X size={14} /></button>
+                                </div>
+                            </div>
                         ))}
                     </div>
                 </div>
@@ -764,13 +1018,37 @@ const Settings = ({
                             <button onClick={cancelEditColor} className="text-sm text-skin-muted hover:text-skin-base-text">Annuller</button>
                         </div>
                     )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                         <div>
-                            <label className="block text-sm font-medium text-skin-muted mb-1">{t('lblColorName')}</label>
+                            <label className="block text-sm font-medium text-skin-muted mb-1">{t('setColorName')}</label>
                             <input
                                 type="text"
                                 value={newColor.name}
                                 onChange={(e) => setNewColor({ ...newColor, name: e.target.value })}
+                                className="w-full rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
+                                placeholder={t('phMatName')}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-skin-muted mb-1">{t('setColorType')}</label>
+                            <select
+                                value={newColor.type}
+                                onChange={(e) => setNewColor({ ...newColor, type: e.target.value })}
+                                className="w-full rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
+                            >
+                                <option value="" disabled>{t('lblSelect')}</option>
+                                {colorCategories.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-skin-muted mb-1">{t('lblColorCost')} ({settings.currency})</label>
+                            <input
+                                type="number"
+                                value={newColor.cost}
+                                onChange={(e) => setNewColor({ ...newColor, cost: e.target.value })}
+                                className="w-full rounded border-skin-border border p-2 text-sm bg-skin-input text-skin-base-text"
                                 placeholder="0.00"
                             />
                         </div>
@@ -806,7 +1084,7 @@ const Settings = ({
 
                 <div className="space-y-6">
                     {colorCategories.map(cat => {
-                        const catColors = colors.filter(c => c.type === cat);
+                        const catColors = groupedColors.groups[cat] || [];
                         if (catColors.length === 0) return null;
                         const isCollapsed = collapsedSections[`color-${cat}`];
 
@@ -828,7 +1106,7 @@ const Settings = ({
                                                 <div className="absolute top-1 right-1 flex gap-1  z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <button
                                                         onClick={() => startEditColor(color)}
-                                                        className="bg-white/90 hover:bg-white text-primary p-1 rounded shadow-sm"
+                                                        className="bg-white/90 hover:bg-white text-indigo-600 p-1 rounded shadow-sm"
                                                         title="Rediger"
                                                     >
                                                         <Pencil size={12} />
@@ -892,10 +1170,10 @@ const Settings = ({
                         </div>
                     )}
                 </div>
-            </section>
+            </section >
 
             {/* MATERIAL LIBRARY */}
-            <section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border">
+            < section className="bg-skin-card p-6 rounded-lg shadow-sm border border-skin-border" >
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                     <Layers className="text-primary" /> {t('setMatTitle')}
                 </h2>
@@ -919,12 +1197,36 @@ const Settings = ({
                             <Plus size={16} />
                         </button>
                     </form>
-                    <div className="flex flex-wrap gap-2">
-                        {materialCategories.map(cat => (
-                            <span key={cat} className="bg-skin-card text-primary px-3 py-1 rounded-full text-xs font-semibold shadow-sm border border-skin-accent flex items-center gap-2">
-                                {cat}
-                                <button type="button" onClick={() => deleteCategory(cat)} className="text-primary/50 hover:text-danger"><X size={12} /></button>
-                            </span>
+                    <div className="flex flex-col gap-2">
+                        {materialCategories.map((cat, index) => (
+                            <div key={cat} className="flex items-center justify-between bg-skin-card p-2 rounded border border-skin-border shadow-sm group">
+                                <span className="font-semibold text-sm text-skin-base-text">{cat}</span>
+                                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {/* Reorder */}
+                                    <button onClick={() => handleReorderCategory('material', index, 'up')} disabled={index === 0} className="p-1 hover:text-primary disabled:opacity-30"><ChevronUp size={14} /></button>
+                                    <button onClick={() => handleReorderCategory('material', index, 'down')} disabled={index === materialCategories.length - 1} className="p-1 hover:text-primary disabled:opacity-30"><ChevronDown size={14} /></button>
+                                    <div className="w-px h-4 bg-skin-border mx-1"></div>
+                                    {/* Actions */}
+                                    <button
+                                        onClick={() => {
+                                            const newName = prompt("Rename category:", cat);
+                                            if (newName) handleRenameCategory('material', cat, newName);
+                                        }}
+                                        className="p-1 text-skin-muted hover:text-primary"
+                                        title="Rename"
+                                    >
+                                        <Pencil size={14} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleMigrateCategory(cat, 'material')}
+                                        className="p-1 text-skin-muted hover:text-indigo-500"
+                                        title="Move to Color Library"
+                                    >
+                                        <ArrowRight size={14} />
+                                    </button>
+                                    <button onClick={() => deleteCategory(cat)} className="p-1 text-danger hover:bg-danger/10 rounded"><X size={14} /></button>
+                                </div>
+                            </div>
                         ))}
                     </div>
                 </div>
@@ -1031,7 +1333,7 @@ const Settings = ({
                 {/* Materials List */}
                 <div className="space-y-6">
                     {materialCategories.map(cat => {
-                        const catMaterials = materials.filter(m => m.category === cat);
+                        const catMaterials = groupedMaterials.groups[cat] || [];
                         if (catMaterials.length === 0) return null;
                         const isCollapsed = collapsedSections[`mat-${cat}`];
 
@@ -1053,7 +1355,7 @@ const Settings = ({
                                                 <div className="absolute top-1 right-1 flex gap-1  z-10 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <button
                                                         onClick={() => startEditMaterial(mat)}
-                                                        className="bg-white/90 hover:bg-white text-primary p-1 rounded shadow-sm"
+                                                        className="bg-white/90 hover:bg-white text-indigo-600 p-1 rounded shadow-sm"
                                                         title="Rediger"
                                                     >
                                                         <Pencil size={12} />
@@ -1137,8 +1439,8 @@ const Settings = ({
                         </div>
                     )}
                 </div>
-            </section>
-        </div>
+            </section >
+        </div >
     );
 };
 

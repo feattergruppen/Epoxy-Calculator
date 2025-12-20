@@ -101,6 +101,8 @@ const Calculator = ({ settings, onSave, t, inputs, setInputs, isEditing, onCance
 
         onSave(entry);
         // Clearing is now handled by parent
+
+
     };
 
     if (!results) return null;
@@ -108,10 +110,10 @@ const Calculator = ({ settings, onSave, t, inputs, setInputs, isEditing, onCance
     const cur = settings.currency || 'kr';
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 max-w-[1920px] mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 p-6 max-w-[1920px] mx-auto">
 
             {/* INPUTS */}
-            <div className="space-y-6 bg-skin-card p-6 rounded-xl shadow-sm border border-skin-border">
+            <div className="space-y-6 bg-skin-card p-6 rounded-xl shadow-sm border border-skin-border lg:col-span-2">
                 <h2 className="text-xl font-bold flex items-center gap-2 text-skin-base-text">
                     <CalcIcon className="text-primary" /> {t('calcTitle')}
                 </h2>
@@ -157,7 +159,7 @@ const Calculator = ({ settings, onSave, t, inputs, setInputs, isEditing, onCance
                                 updateMaterial={updateMaterial}
                                 removeMaterial={removeMaterial}
                                 t={t}
-                                cur={cur}
+                                currency={cur}
                                 suggestions={[
                                     ...materials.map(m => ({ type: 'material', name: m.name, cost: m.cost, category: m.category })),
                                     ...colors.map(c => ({ type: 'color', name: c.name, category: c.type, cost: c.cost }))
@@ -528,7 +530,7 @@ const MaterialItem = ({ material, updateMaterial, removeMaterial, t, currency, s
             </div>
 
             {/* UNIT PRICE */}
-            <div className="w-full md:w-32">
+            <div className="w-full md:w-28">
                 <label className="block text-sm font-medium text-skin-muted mb-1">{t('matUnitPrice')}</label>
                 <input
                     type="number"
@@ -541,7 +543,7 @@ const MaterialItem = ({ material, updateMaterial, removeMaterial, t, currency, s
             </div>
 
             {/* TOTAL (Read Only) */}
-            <div className="w-full md:w-32">
+            <div className="w-full md:w-28">
                 <label className="block text-sm font-medium text-skin-muted mb-1">{t('matTotal')}</label>
                 <div className="w-full p-2 bg-skin-accent rounded-md text-right font-mono text-skin-base-text border border-skin-border">
                     {fmt(material.cost)} {currency}
@@ -555,6 +557,7 @@ const MaterialItem = ({ material, updateMaterial, removeMaterial, t, currency, s
                     className="p-2 text-danger hover:bg-danger/10 rounded-md transition-colors"
                     title={t('btnRemove')}
                 >
+                    <Trash2 size={18} />
                 </button>
             </div>
         </div>
